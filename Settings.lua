@@ -455,7 +455,7 @@ local function CardGrid(order)
         LayoutOrder = order,
     }, Content)
     New("UIGridLayout", {
-        CellSize    = UDim2.new(0.5, -7, 0, 82),
+        CellSize    = UDim2.new(0.5, -7, 0, 90),
         CellPadding = UDim2.new(0, 14, 0, 10),
         SortOrder   = Enum.SortOrder.LayoutOrder,
         Parent = g,
@@ -507,79 +507,100 @@ end
 local checkIcon = getIcon("check")
 local xIcon     = getIcon("x")
 
+local GradGreen = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(34,  197, 94)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(21,  128, 61)),
+})
+local GradRed = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(220, 38,  38)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(153, 27,  27)),
+})
+
 local function ToggleCard(parent, id, label, desc, order)
     local tog  = Toggles[id]
     local card = New("Frame", { BackgroundColor3=C.Card, LayoutOrder=order }, parent)
     Corner(8, card); Stroke(C.CardBdr, 1, card)
 
-    New("TextLabel", { Position=UDim2.fromOffset(13,13), Size=UDim2.new(1,-62,0,17), BackgroundTransparency=1, Text=label, TextColor3=C.Text, Font=Enum.Font.GothamBold, TextSize=13, TextXAlignment=Enum.TextXAlignment.Left }, card)
-    New("TextLabel", { Position=UDim2.fromOffset(13,30), Size=UDim2.new(1,-62,0,34), BackgroundTransparency=1, Text=desc,  TextColor3=C.Sub,  Font=Enum.Font.Gotham,      TextSize=11, TextXAlignment=Enum.TextXAlignment.Left, TextWrapped=true, TextYAlignment=Enum.TextYAlignment.Top }, card)
+    -- Labels (left side, narrowed to leave room for 56px button + margins)
+    New("TextLabel", { Position=UDim2.fromOffset(13,13), Size=UDim2.new(1,-76,0,17),
+        BackgroundTransparency=1, Text=label, TextColor3=C.Text,
+        Font=Enum.Font.GothamBold, TextSize=13, TextXAlignment=Enum.TextXAlignment.Left }, card)
+    New("TextLabel", { Position=UDim2.fromOffset(13,30), Size=UDim2.new(1,-76,0,42),
+        BackgroundTransparency=1, Text=desc, TextColor3=C.Sub, Font=Enum.Font.Gotham,
+        TextSize=11, TextXAlignment=Enum.TextXAlignment.Left,
+        TextWrapped=true, TextYAlignment=Enum.TextYAlignment.Top }, card)
 
+    -- Button: 56×48, fully rounded stadium shape (corner radius = half height = 24)
     local btn = New("Frame", {
-        AnchorPoint = Vector2.new(1, 0.5),
-        Position    = UDim2.new(1, -12, 0.5, 0),
-        Size        = UDim2.fromOffset(38, 38),
-        BackgroundColor3 = tog.Value and C.Green or C.Red,
+        AnchorPoint      = Vector2.new(1, 0.5),
+        Position         = UDim2.new(1, -12, 0.5, 0),
+        Size             = UDim2.fromOffset(56, 48),
+        BackgroundColor3 = Color3.new(1, 1, 1),  -- white base; gradient provides colour
+        ClipsDescendants = true,
     }, card)
-    Corner(7, btn)
+    Corner(24, btn)  -- 24 = half of 48px height → full pill/stadium shape
 
-    -- Icon image inside button (check or x)
+    -- Gradient (green = ON, red = OFF)
+    local grad = New("UIGradient", {
+        Color    = tog.Value and GradGreen or GradRed,
+        Rotation = 90,
+    }, btn)
+
+    -- Icon: 26×26, centered
     local iconImg = nil
     do
         local ic = tog.Value and checkIcon or xIcon
         if ic then
             iconImg = New("ImageLabel", {
-                AnchorPoint = Vector2.new(0.5, 0.5),
-                Position    = UDim2.fromScale(0.5, 0.5),
-                Size        = UDim2.fromOffset(20, 20),
+                AnchorPoint     = Vector2.new(0.5, 0.5),
+                Position        = UDim2.fromScale(0.5, 0.5),
+                Size            = UDim2.fromOffset(26, 26),
                 BackgroundTransparency = 1,
-                Image       = ic.Url,
-                ImageColor3 = C.White,
+                Image           = ic.Url,
+                ImageColor3     = C.White,
                 ImageRectOffset = ic.ImageRectOffset or Vector2.zero,
                 ImageRectSize   = ic.ImageRectSize   or Vector2.zero,
-                ScaleType   = Enum.ScaleType.Fit,
+                ScaleType       = Enum.ScaleType.Fit,
             }, btn)
         else
-            -- Fallback text
-            New("TextLabel", { Size=UDim2.fromScale(1,1), BackgroundTransparency=1, Text=tog.Value and "✓" or "✕", TextColor3=C.White, Font=Enum.Font.GothamBold, TextSize=20 }, btn)
+            -- Fallback text when icon atlas is unavailable
+            New("TextLabel", { Size=UDim2.fromScale(1,1), BackgroundTransparency=1,
+                Text=tog.Value and "✓" or "✕", TextColor3=C.White,
+                Font=Enum.Font.GothamBold, TextSize=22 }, btn)
         end
     end
 
-    local function updateBtn(animated)
-        local newBg   = tog.Value and C.Green or C.Red
-        local newIcon = tog.Value and checkIcon or xIcon
-        if animated then
-            Tween(btn, TW_FAST, { BackgroundColor3 = newBg })
-        else
-            btn.BackgroundColor3 = newBg
-        end
-        if iconImg and newIcon then
-            iconImg.Image           = newIcon.Url
-            iconImg.ImageRectOffset = newIcon.ImageRectOffset or Vector2.zero
-            iconImg.ImageRectSize   = newIcon.ImageRectSize   or Vector2.zero
-        end
-    end
-    tog:OnChanged(function() updateBtn(true) end)
-
-    -- Clickable overlay for the whole button frame
+    -- Transparent click-catcher on top of the button frame
     local clickBtn = New("TextButton", {
         Size = UDim2.fromScale(1, 1),
         BackgroundTransparency = 1,
         Text = "",
     }, btn)
 
+    -- Update gradient + icon whenever toggle value changes
+    local function updateBtn()
+        grad.Color = tog.Value and GradGreen or GradRed
+        local newIc = tog.Value and checkIcon or xIcon
+        if iconImg and newIc then
+            iconImg.Image           = newIc.Url
+            iconImg.ImageRectOffset = newIc.ImageRectOffset or Vector2.zero
+            iconImg.ImageRectSize   = newIc.ImageRectSize   or Vector2.zero
+        end
+    end
+    tog:OnChanged(function() updateBtn() end)
+
     clickBtn.MouseButton1Click:Connect(function()
         tog:SetValue(not tog.Value)
-        -- Bounce animation: grow then shrink back
-        Tween(btn, TW_BOUNCE, { Size = UDim2.fromOffset(43, 43) })
+        -- Bounce: grow slightly then snap back
+        Tween(btn, TW_BOUNCE, { Size = UDim2.fromOffset(60, 52) })
         task.delay(0.15, function()
-            Tween(btn, TW_FAST, { Size = UDim2.fromOffset(38, 38) })
+            Tween(btn, TW_FAST, { Size = UDim2.fromOffset(56, 48) })
         end)
     end)
 
-    -- Hover effect
-    clickBtn.MouseEnter:Connect(function() Tween(btn, TW_FAST, { Size = UDim2.fromOffset(40, 40) }) end)
-    clickBtn.MouseLeave:Connect(function() Tween(btn, TW_FAST, { Size = UDim2.fromOffset(38, 38) }) end)
+    -- Subtle hover scale
+    clickBtn.MouseEnter:Connect(function() Tween(btn, TW_FAST, { Size = UDim2.fromOffset(58, 50) }) end)
+    clickBtn.MouseLeave:Connect(function() Tween(btn, TW_FAST, { Size = UDim2.fromOffset(56, 48) }) end)
 end
 
 -- ─── Action card ──────────────────────────────────────────────────────────────
