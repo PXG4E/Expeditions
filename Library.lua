@@ -245,7 +245,7 @@ local Library = {
 
     NotifyOnError = false,
     ShowCustomCursor = true,
-    ForceCheckbox = false,
+    ForceCheckbox = true,
 
     CantDragForced = false,
     DraggableElements = {},
@@ -257,20 +257,21 @@ local Library = {
     OriginalMinSize = Vector2.new(480, 360),
     MinSize = Vector2.new(480, 360),
     DPIScale = 1,
-    CornerRadius = 4,
+    CornerRadius = 8,
 
     --// Scheme \\--
     IsLightTheme = false,
     Scheme = {
-        BackgroundColor = Color3.fromRGB(15, 15, 15),
-        MainColor = Color3.fromRGB(25, 25, 25),
-        AccentColor = Color3.fromRGB(125, 85, 255),
-        OutlineColor = Color3.fromRGB(40, 40, 40),
+        BackgroundColor = Color3.fromRGB(8, 9, 12),
+        MainColor = Color3.fromRGB(22, 25, 30),
+        AccentColor = Color3.fromRGB(0, 185, 210),
+        OutlineColor = Color3.fromRGB(35, 40, 48),
         FontColor = Color3.new(1, 1, 1),
-        Font = Font.fromEnum(Enum.Font.Code),
+        Font = Font.fromEnum(Enum.Font.GothamBold),
 
-        RedColor = Color3.fromRGB(255, 50, 50),
+        RedColor = Color3.fromRGB(220, 38, 38),
         DestructiveColor = Color3.fromRGB(220, 38, 38),
+        GreenColor = Color3.fromRGB(34, 197, 94),
         DarkColor = Color3.new(0, 0, 0),
         WhiteColor = Color3.new(1, 1, 1),
 
@@ -358,7 +359,7 @@ local Templates = {
         Footer = "No Footer",
 
         Position = UDim2.fromOffset(6, 6),
-        Size = UDim2.fromOffset(720, 600),
+        Size = UDim2.fromOffset(820, 600),
         IconSize = UDim2.fromOffset(30, 30),
 
         AutoShow = true,
@@ -1757,8 +1758,8 @@ end
 
 function Library:AddOutline(Frame: GuiObject)
     local OutlineStroke = New("UIStroke", {
-        Color = "OutlineColor",
-        Thickness = 1,
+        Color = "AccentColor",
+        Thickness = 2,
         ZIndex = 2,
         Parent = Frame,
     })
@@ -5083,7 +5084,7 @@ do
         local Button = New("TextButton", {
             Active = not Toggle.Disabled,
             BackgroundTransparency = 1,
-            Size = UDim2.new(1, 0, 0, 18),
+            Size = UDim2.new(1, 0, 0, 36),
             Text = "",
             Visible = Toggle.Visible,
             Parent = Container,
@@ -5091,8 +5092,8 @@ do
 
         local Label = New("TextLabel", {
             BackgroundTransparency = 1,
-            Position = UDim2.fromOffset(26, 0),
-            Size = UDim2.new(1, -26, 1, 0),
+            Position = UDim2.fromOffset(0, 0),
+            Size = UDim2.new(1, -44, 1, 0),
             Text = Toggle.Text,
             TextSize = 14,
             TextTransparency = 0.4,
@@ -5108,15 +5109,15 @@ do
         })
 
         local Checkbox = New("Frame", {
-            BackgroundColor3 = "MainColor",
-            Size = UDim2.fromScale(1, 1),
-            SizeConstraint = Enum.SizeConstraint.RelativeYY,
+            BackgroundColor3 = "DestructiveColor",
+            Size = UDim2.fromOffset(36, 36),
+            SizeConstraint = Enum.SizeConstraint.RelativeXY,
             Parent = Button,
         })
         table.insert(
             Library.Corners,
             New("UICorner", {
-                CornerRadius = UDim.new(0, Library.CornerRadius / 2),
+                CornerRadius = UDim.new(0, 8),
                 Parent = Checkbox,
             })
         )
@@ -5128,7 +5129,7 @@ do
 
         local CheckImage = New("ImageLabel", {
             Image = CheckIcon and CheckIcon.Url or "",
-            ImageColor3 = "FontColor",
+            ImageColor3 = "WhiteColor",
             ImageRectOffset = CheckIcon and CheckIcon.ImageRectOffset or Vector2.zero,
             ImageRectSize = CheckIcon and CheckIcon.ImageRectSize or Vector2.zero,
             ImageTransparency = 1,
@@ -5165,8 +5166,12 @@ do
                 ImageTransparency = Toggle.Value and 0 or 1,
             }):Play()
 
-            Checkbox.BackgroundColor3 = Library.Scheme.MainColor
-            Library.Registry[Checkbox].BackgroundColor3 = "MainColor"
+            local _BgColor = Toggle.Value and Library.Scheme.GreenColor or Library.Scheme.DestructiveColor
+            local _BgKey = Toggle.Value and "GreenColor" or "DestructiveColor"
+            Checkbox.BackgroundColor3 = _BgColor
+            Library.Registry[Checkbox].BackgroundColor3 = _BgKey
+            CheckboxStroke.Color = _BgColor
+            Library.Registry[CheckboxStroke].Color = _BgKey
         end
 
         function Toggle:OnChanged(Func)
@@ -8584,7 +8589,8 @@ function Library:CreateWindow(WindowInfo)
             BackgroundTransparency = 1,
             Size = UDim2.new(0, X, 1, 0),
             Text = WindowInfo.Title,
-            TextSize = 20,
+            TextSize = 22,
+            TextColor3 = "AccentColor",
             Parent = TitleHolder,
         })
 
@@ -9797,8 +9803,12 @@ function Library:CreateWindow(WindowInfo)
 
                 GroupboxLine = Library:MakeLine(GroupboxHolder, {
                     Position = UDim2.fromOffset(0, 34),
-                    Size = UDim2.new(1, 0, 0, 1),
+                    Size = UDim2.new(1, 0, 0, 2),
                 })
+                GroupboxLine.BackgroundColor3 = Library.Scheme.AccentColor
+                if Library.Registry[GroupboxLine] then
+                    Library.Registry[GroupboxLine].BackgroundColor3 = "AccentColor"
+                end
 
                 local BoxIcon = Library:GetCustomIcon(Info.IconName)
                 if BoxIcon then
@@ -9818,7 +9828,8 @@ function Library:CreateWindow(WindowInfo)
                     Position = UDim2.fromOffset(BoxIcon and 24 or 0, 0),
                     Size = UDim2.new(1, 0, 0, 34),
                     Text = Info.Name,
-                    TextSize = 15,
+                    TextSize = 16,
+                    TextColor3 = "AccentColor",
                     TextXAlignment = Enum.TextXAlignment.Left,
                     Parent = GroupboxHolder,
                 })
@@ -10069,6 +10080,8 @@ function Library:CreateWindow(WindowInfo)
                 Library.ActiveTab:Hide()
             end
 
+            TabButton.BackgroundColor3 = Library.Scheme.AccentColor
+            Library.Registry[TabButton].BackgroundColor3 = "AccentColor"
             TweenService:Create(TabButton, Library.TweenInfo, {
                 BackgroundTransparency = 0,
             }):Play()
@@ -10078,6 +10091,7 @@ function Library:CreateWindow(WindowInfo)
             if TabIcon then
                 TweenService:Create(TabIcon, Library.TweenInfo, {
                     ImageTransparency = 0,
+                    ImageColor3 = Library.Scheme.WhiteColor,
                 }):Play()
             end
 
@@ -10096,6 +10110,8 @@ function Library:CreateWindow(WindowInfo)
         end
 
         function Tab:Hide()
+            TabButton.BackgroundColor3 = Library.Scheme.MainColor
+            Library.Registry[TabButton].BackgroundColor3 = "MainColor"
             TweenService:Create(TabButton, Library.TweenInfo, {
                 BackgroundTransparency = 1,
             }):Play()
@@ -10107,6 +10123,7 @@ function Library:CreateWindow(WindowInfo)
             if TabIcon then
                 TweenService:Create(TabIcon, Library.TweenInfo, {
                     ImageTransparency = 0.5,
+                    ImageColor3 = Library.Scheme.AccentColor,
                 }):Play()
             end
 
@@ -10456,6 +10473,8 @@ function Library:CreateWindow(WindowInfo)
         end
 
         function Tab:Hide()
+            TabButton.BackgroundColor3 = Library.Scheme.MainColor
+            Library.Registry[TabButton].BackgroundColor3 = "MainColor"
             TweenService:Create(TabButton, Library.TweenInfo, {
                 BackgroundTransparency = 1,
             }):Play()
@@ -10467,6 +10486,7 @@ function Library:CreateWindow(WindowInfo)
             if TabIcon then
                 TweenService:Create(TabIcon, Library.TweenInfo, {
                     ImageTransparency = 0.5,
+                    ImageColor3 = Library.Scheme.AccentColor,
                 }):Play()
             end
 
