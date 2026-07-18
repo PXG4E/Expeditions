@@ -98,14 +98,13 @@ local KEYBIND_DEFS = {
     { id = "KbSell",          label = "Sell Unit",                      default = "X",            mode = "Press"  },
     { id = "KbTargeting",     label = "Change Unit Targeting",          default = "X",            mode = "Press"  },
     { id = "KbAutoSkip",      label = "Toggle Auto Skip Waves",         default = "Unknown",      mode = "Toggle" },
-    { id = "KbAutoUpgradePlaced","label"="Toggle Auto-Upgrade Placed",  default = "Unknown",      mode = "Toggle" },
+    { id = "KbAutoUpgradePlaced", label = "Toggle Auto-Upgrade Placed", default = "Unknown",      mode = "Toggle" },
     { id = "KbPlayMenu",      label = "Toggle Play Menu",               default = "Unknown",      mode = "Toggle" },
     { id = "KbQuestsMenu",    label = "Toggle Quests Menu",             default = "Unknown",      mode = "Toggle" },
     { id = "KbAreasMenu",     label = "Toggle Areas Menu",              default = "Unknown",      mode = "Toggle" },
 }
 
 -- fix mixed-syntax rows above (Lua workaround for the label field)
-KEYBIND_DEFS[13].label = "Toggle Auto-Upgrade Placed"
 
 for _, kb in ipairs(KEYBIND_DEFS) do
     KeyBox:AddLabel(kb.label):AddKeyPicker(kb.id, {
