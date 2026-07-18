@@ -161,21 +161,25 @@ end
 
 -- ─── Color palette ────────────────────────────────────────────────────────────
 local C = {
-    BG       = Color3.fromRGB(10,  12,  16),
-    Sidebar  = Color3.fromRGB(16,  19,  25),
-    Card     = Color3.fromRGB(22,  26,  34),
-    CardBdr  = Color3.fromRGB(38,  46,  62),
-    Cyan     = Color3.fromRGB(0,   185, 210),
-    CyanDim  = Color3.fromRGB(0,   140, 165),
+    BG       = Color3.fromRGB(4,   4,   6),        -- near-black window bg
+    Sidebar  = Color3.fromRGB(10,  10,  14),        -- dark sidebar
+    Card     = Color3.fromRGB(22,  22,  28),        -- card bg (no border)
+    CardBdr  = Color3.fromRGB(50,  50,  65),        -- kept for search bar only
+    Cyan     = Color3.fromRGB(255, 185, 30),        -- gold accent (replaces cyan everywhere)
+    CyanDim  = Color3.fromRGB(175, 115, 0),         -- dark gold
     Text     = Color3.fromRGB(225, 230, 240),
-    Sub      = Color3.fromRGB(120, 128, 145),
+    Sub      = Color3.fromRGB(105, 105, 125),       -- muted gray for inactive icons/text
     Green    = Color3.fromRGB(34,  197, 94),
     Red      = Color3.fromRGB(220, 38,  50),
-    SearchBG = Color3.fromRGB(26,  30,  40),
-    SliderBG = Color3.fromRGB(32,  38,  50),
-    SliderFG = Color3.fromRGB(0,   140, 165),
+    SearchBG = Color3.fromRGB(16,  16,  22),
+    SliderBG = Color3.fromRGB(28,  28,  36),
+    SliderFG = Color3.fromRGB(175, 115, 0),         -- gold slider fill
     White    = Color3.new(1,1,1),
     Black    = Color3.new(0,0,0),
+    TabBg    = Color3.fromRGB(26,  26,  34),        -- inactive tab button bg (gray)
+    -- Gold gradient endpoints (shared)
+    GoldHi   = Color3.fromRGB(255, 215, 75),
+    GoldLo   = Color3.fromRGB(165, 105, 0),
 }
 
 -- ─── UI factories ─────────────────────────────────────────────────────────────
@@ -242,7 +246,7 @@ local Win2 = New("Frame", {
     ZIndex = 2,
 }, Gui)
 Corner(10, Win2)
-Stroke(C.Cyan, 2, Win2)
+Stroke(C.Cyan, 1, Win2)
 
 -- Pop-in animation on open
 local WinScale = New("UIScale", { Scale = 0.92 }, Win2)
@@ -277,17 +281,31 @@ end
 -- Settings badge (left of top bar)
 local Badge = New("Frame", {
     Size = UDim2.fromOffset(228, 62),
-    BackgroundColor3 = C.Cyan,
+    BackgroundColor3 = C.GoldLo,
     ZIndex = 3,
 }, TopBar)
+New("UIGradient", {
+    Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, C.GoldHi),
+        ColorSequenceKeypoint.new(1, C.GoldLo),
+    }),
+    Rotation = 135,
+}, Badge)
 -- Angled right edge
-New("Frame", {
+local angledEdge = New("Frame", {
     Position = UDim2.fromOffset(212, -2),
     Size     = UDim2.fromOffset(36, 66),
-    BackgroundColor3 = C.Cyan,
+    BackgroundColor3 = C.GoldLo,
     Rotation = -8,
     ZIndex = 2,
 }, TopBar)
+New("UIGradient", {
+    Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, C.GoldHi),
+        ColorSequenceKeypoint.new(1, C.GoldLo),
+    }),
+    Rotation = 135,
+}, angledEdge)
 -- Settings icon + label
 do
     local settingsIcon = IconImg(Badge, "settings", C.Black, UDim2.new(0, 12, 0.5, 0), UDim2.fromOffset(20, 20))
@@ -434,14 +452,25 @@ local function SectionHeader(iconName, title, order)
         TextXAlignment = Enum.TextXAlignment.Left,
     }, f)
 
-    -- Accent wave line below title
-    New("Frame", {
+    -- Gold gradient underline — fades right to transparent
+    local uline = New("Frame", {
         AnchorPoint = Vector2.new(0, 1),
         Position    = UDim2.fromScale(0, 1),
         Size        = UDim2.new(1, 0, 0, 2),
-        BackgroundColor3 = C.Cyan,
-        BackgroundTransparency = 0.65,
+        BackgroundColor3 = Color3.new(1, 1, 1),
     }, f)
+    New("UIGradient", {
+        Color = ColorSequence.new({
+            ColorSequenceKeypoint.new(0,    C.GoldHi),
+            ColorSequenceKeypoint.new(0.45, C.Cyan),
+            ColorSequenceKeypoint.new(1,    C.GoldLo),
+        }),
+        Transparency = NumberSequence.new({
+            NumberSequenceKeypoint.new(0,   0),
+            NumberSequenceKeypoint.new(0.65, 0.35),
+            NumberSequenceKeypoint.new(1,   1),
+        }),
+    }, uline)
 
     return f
 end
@@ -467,7 +496,7 @@ end
 local function SliderCard(parent, id, label, desc, order)
     local opt  = Options[id]
     local card = New("Frame", { BackgroundColor3=C.Card, LayoutOrder=order }, parent)
-    Corner(8, card); Stroke(C.CardBdr, 1, card)
+    Corner(8, card)
 
     New("TextLabel", { Position=UDim2.fromOffset(13,9),  Size=UDim2.new(1,-14,0,17), BackgroundTransparency=1, Text=label, TextColor3=C.Text, Font=Enum.Font.GothamBold, TextSize=13, TextXAlignment=Enum.TextXAlignment.Left }, card)
     New("TextLabel", { Position=UDim2.fromOffset(13,26), Size=UDim2.new(1,-14,0,15), BackgroundTransparency=1, Text=desc,  TextColor3=C.Sub,  Font=Enum.Font.Gotham,      TextSize=11, TextXAlignment=Enum.TextXAlignment.Left }, card)
@@ -477,7 +506,8 @@ local function SliderCard(parent, id, label, desc, order)
 
     local track = New("Frame",  { Position=UDim2.fromOffset(63,54), Size=UDim2.new(1,-78,0,8), BackgroundColor3=C.SliderBG }, card); Corner(4, track)
     local mn, mx = opt.Min, opt.Max
-    local fill  = New("Frame",  { Size=UDim2.new((opt.Value-mn)/(mx-mn),0,1,0), BackgroundColor3=C.Cyan }, track); Corner(4, fill)
+    local fill  = New("Frame",  { Size=UDim2.new((opt.Value-mn)/(mx-mn),0,1,0), BackgroundColor3=C.GoldLo }, track); Corner(4, fill)
+    New("UIGradient", { Color=ColorSequence.new({ ColorSequenceKeypoint.new(0,C.GoldHi), ColorSequenceKeypoint.new(1,C.GoldLo) }) }, fill)
     local knob  = New("Frame",  { AnchorPoint=Vector2.new(0.5,0.5), Position=UDim2.new((opt.Value-mn)/(mx-mn),0,0.5,0), Size=UDim2.fromOffset(14,14), BackgroundColor3=C.Text }, track); Corner(7, knob)
     Stroke(C.Cyan, 2, knob)
 
@@ -519,7 +549,7 @@ local GradRed = ColorSequence.new({
 local function ToggleCard(parent, id, label, desc, order)
     local tog  = Toggles[id]
     local card = New("Frame", { BackgroundColor3=C.Card, LayoutOrder=order }, parent)
-    Corner(8, card); Stroke(C.CardBdr, 1, card)
+    Corner(8, card)
 
     -- Labels (left side — right margin accounts for 40px button + 12px right pad + 8px gap)
     New("TextLabel", { Position=UDim2.fromOffset(13,13), Size=UDim2.new(1,-62,0,17),
@@ -606,7 +636,7 @@ end
 -- ─── Action card ──────────────────────────────────────────────────────────────
 local function ActionCard(parent, label, desc, order, iconName, cb)
     local card = New("Frame", { BackgroundColor3=C.Card, LayoutOrder=order }, parent)
-    Corner(8, card); Stroke(C.CardBdr, 1, card)
+    Corner(8, card)
     New("TextLabel", { Position=UDim2.fromOffset(13,13), Size=UDim2.new(1,-62,0,17), BackgroundTransparency=1, Text=label, TextColor3=C.Text, Font=Enum.Font.GothamBold, TextSize=13, TextXAlignment=Enum.TextXAlignment.Left }, card)
     New("TextLabel", { Position=UDim2.fromOffset(13,30), Size=UDim2.new(1,-62,0,34), BackgroundTransparency=1, Text=desc,  TextColor3=C.Sub,  Font=Enum.Font.Gotham,      TextSize=11, TextXAlignment=Enum.TextXAlignment.Left, TextWrapped=true, TextYAlignment=Enum.TextYAlignment.Top }, card)
 
@@ -617,7 +647,7 @@ local function ActionCard(parent, label, desc, order, iconName, cb)
         BackgroundColor3 = C.SliderBG,
         Text = "",
     }, card)
-    Corner(7, btn); Stroke(C.CardBdr, 1, btn)
+    Corner(7, btn)
 
     -- Lucide icon inside the action button
     local ic = getIcon(iconName or "arrow-down")
@@ -815,60 +845,91 @@ local function switchTab(name)
     activeTab = name
     for n, data in pairs(tabBtns) do
         local isActive = (n == name)
-        Tween(data.btn, TW_FAST, {
-            BackgroundColor3 = isActive and C.Cyan or C.Sidebar,
-        })
+        -- Gold gradient overlay: fade in when active, fade out when inactive
+        Tween(data.goldOverlay, TW_FAST, { BackgroundTransparency = isActive and 0 or 1 })
+        Tween(data.btn, TW_FAST, { BackgroundColor3 = isActive and C.GoldLo or C.TabBg })
+        -- Bounce pop on the newly active tab
+        if isActive then
+            Tween(data.uiScale, TW_BOUNCE, { Scale = 1.07 })
+            task.delay(0.2, function()
+                Tween(data.uiScale, TW_FAST, { Scale = 1.0 })
+            end)
+        else
+            Tween(data.uiScale, TW_FAST, { Scale = 1.0 })
+        end
         if data.lbl then
-            Tween(data.lbl, TW_FAST, {
-                TextColor3 = isActive and C.Black or C.Sub,
-            })
+            Tween(data.lbl, TW_FAST, { TextColor3 = isActive and C.Black or C.Sub })
             data.lbl.Font = isActive and Enum.Font.GothamBold or Enum.Font.Gotham
         end
         if data.icImg then
-            Tween(data.icImg, TW_FAST, {
-                ImageColor3 = isActive and C.Black or C.Sub,
-            })
+            Tween(data.icImg, TW_FAST, { ImageColor3 = isActive and C.Black or C.Sub })
         end
     end
     for secName, frames in pairs(tabSections) do
-        local show = (name=="All") or (name==secName)
+        local show = (name == "All") or (name == secName)
         for _, f in ipairs(frames) do f.Visible = show end
     end
 end
 
 for i, td in ipairs(TAB_DEFS) do
     local btn = New("TextButton", {
-        Size = UDim2.new(1, 0, 0, 44),
-        BackgroundColor3 = C.Sidebar,
-        Text = "",
-        LayoutOrder = i,
-        AutoButtonColor = false,
+        Size             = UDim2.new(1, 0, 0, 44),
+        BackgroundColor3 = C.TabBg,
+        Text             = "",
+        LayoutOrder      = i,
+        AutoButtonColor  = false,
+        ClipsDescendants = true,
     }, TabScroll)
     Corner(8, btn)
+
+    -- Gold gradient overlay — created first so icon/label render on top
+    local goldOverlay = New("Frame", {
+        Size             = UDim2.fromScale(1, 1),
+        BackgroundColor3 = C.GoldLo,
+        BackgroundTransparency = 1,   -- hidden until active
+    }, btn)
+    New("UIGradient", {
+        Color = ColorSequence.new({
+            ColorSequenceKeypoint.new(0, C.GoldHi),
+            ColorSequenceKeypoint.new(1, C.GoldLo),
+        }),
+        Rotation = 90,
+    }, goldOverlay)
+
+    -- Per-button UIScale for smooth hover pop-up
+    local uiScale = New("UIScale", { Scale = 1 }, btn)
 
     local icImg = IconImg(btn, td.icon, C.Sub, UDim2.new(0, 12, 0.5, -9), UDim2.fromOffset(18, 18))
     local textX = icImg and 36 or 14
     local lbl = New("TextLabel", {
-        Position  = UDim2.fromOffset(textX, 0),
-        Size      = UDim2.new(1, -(textX + 8), 1, 0),
+        Position           = UDim2.fromOffset(textX, 0),
+        Size               = UDim2.new(1, -(textX + 8), 1, 0),
         BackgroundTransparency = 1,
-        Text      = td.name,
-        TextColor3 = C.Sub,
-        Font      = Enum.Font.Gotham,
-        TextSize  = 14,
-        TextXAlignment = Enum.TextXAlignment.Left,
+        Text               = td.name,
+        TextColor3         = C.Sub,
+        Font               = Enum.Font.Gotham,
+        TextSize           = 14,
+        TextXAlignment     = Enum.TextXAlignment.Left,
     }, btn)
 
-    tabBtns[td.name] = { btn=btn, lbl=lbl, icImg=icImg }
+    tabBtns[td.name] = { btn=btn, lbl=lbl, icImg=icImg, goldOverlay=goldOverlay, uiScale=uiScale }
 
     btn.MouseEnter:Connect(function()
         if activeTab ~= td.name then
-            Tween(btn, TW_FAST, { BackgroundColor3 = Color3.fromRGB(28, 34, 46) })
+            Tween(btn, TW_FAST, { BackgroundColor3 = Color3.fromRGB(40, 40, 52) })
+            Tween(uiScale, TW_FAST, { Scale = 1.05 })
+            if icImg then Tween(icImg, TW_FAST, { ImageColor3 = C.Cyan }) end
+            if lbl   then Tween(lbl,   TW_FAST, { TextColor3  = C.Text }) end
+        else
+            Tween(uiScale, TW_FAST, { Scale = 1.03 })
         end
     end)
     btn.MouseLeave:Connect(function()
+        Tween(uiScale, TW_FAST, { Scale = 1.0 })
         if activeTab ~= td.name then
-            Tween(btn, TW_FAST, { BackgroundColor3 = C.Sidebar })
+            Tween(btn, TW_FAST, { BackgroundColor3 = C.TabBg })
+            if icImg then Tween(icImg, TW_FAST, { ImageColor3 = C.Sub }) end
+            if lbl   then Tween(lbl,   TW_FAST, { TextColor3  = C.Sub }) end
         end
     end)
 
