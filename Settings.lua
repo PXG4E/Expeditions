@@ -455,7 +455,7 @@ local function CardGrid(order)
         LayoutOrder = order,
     }, Content)
     New("UIGridLayout", {
-        CellSize    = UDim2.new(0.5, -7, 0, 90),
+        CellSize    = UDim2.new(0.5, -7, 0, 82),
         CellPadding = UDim2.new(0, 14, 0, 10),
         SortOrder   = Enum.SortOrder.LayoutOrder,
         Parent = g,
@@ -521,24 +521,24 @@ local function ToggleCard(parent, id, label, desc, order)
     local card = New("Frame", { BackgroundColor3=C.Card, LayoutOrder=order }, parent)
     Corner(8, card); Stroke(C.CardBdr, 1, card)
 
-    -- Labels (left side, narrowed to leave room for 56px button + margins)
-    New("TextLabel", { Position=UDim2.fromOffset(13,13), Size=UDim2.new(1,-76,0,17),
+    -- Labels (left side — right margin accounts for 40px button + 12px right pad + 8px gap)
+    New("TextLabel", { Position=UDim2.fromOffset(13,13), Size=UDim2.new(1,-62,0,17),
         BackgroundTransparency=1, Text=label, TextColor3=C.Text,
         Font=Enum.Font.GothamBold, TextSize=13, TextXAlignment=Enum.TextXAlignment.Left }, card)
-    New("TextLabel", { Position=UDim2.fromOffset(13,30), Size=UDim2.new(1,-76,0,42),
+    New("TextLabel", { Position=UDim2.fromOffset(13,30), Size=UDim2.new(1,-62,0,34),
         BackgroundTransparency=1, Text=desc, TextColor3=C.Sub, Font=Enum.Font.Gotham,
         TextSize=11, TextXAlignment=Enum.TextXAlignment.Left,
         TextWrapped=true, TextYAlignment=Enum.TextYAlignment.Top }, card)
 
-    -- Button: 56×48, fully rounded stadium shape (corner radius = half height = 24)
+    -- Button: 40×36, rounded square (corner radius 7 — matches game's visual)
     local btn = New("Frame", {
         AnchorPoint      = Vector2.new(1, 0.5),
         Position         = UDim2.new(1, -12, 0.5, 0),
-        Size             = UDim2.fromOffset(56, 48),
+        Size             = UDim2.fromOffset(40, 36),
         BackgroundColor3 = Color3.new(1, 1, 1),  -- white base; gradient provides colour
         ClipsDescendants = true,
     }, card)
-    Corner(24, btn)  -- 24 = half of 48px height → full pill/stadium shape
+    Corner(7, btn)
 
     -- Gradient (green = ON, red = OFF)
     local grad = New("UIGradient", {
@@ -546,7 +546,7 @@ local function ToggleCard(parent, id, label, desc, order)
         Rotation = 90,
     }, btn)
 
-    -- Icon: 26×26, centered
+    -- Icon: 20×20, centered
     local iconImg = nil
     do
         local ic = tog.Value and checkIcon or xIcon
@@ -554,7 +554,7 @@ local function ToggleCard(parent, id, label, desc, order)
             iconImg = New("ImageLabel", {
                 AnchorPoint     = Vector2.new(0.5, 0.5),
                 Position        = UDim2.fromScale(0.5, 0.5),
-                Size            = UDim2.fromOffset(26, 26),
+                Size            = UDim2.fromOffset(20, 20),
                 BackgroundTransparency = 1,
                 Image           = ic.Url,
                 ImageColor3     = C.White,
@@ -566,7 +566,7 @@ local function ToggleCard(parent, id, label, desc, order)
             -- Fallback text when icon atlas is unavailable
             New("TextLabel", { Size=UDim2.fromScale(1,1), BackgroundTransparency=1,
                 Text=tog.Value and "✓" or "✕", TextColor3=C.White,
-                Font=Enum.Font.GothamBold, TextSize=22 }, btn)
+                Font=Enum.Font.GothamBold, TextSize=18 }, btn)
         end
     end
 
@@ -592,15 +592,15 @@ local function ToggleCard(parent, id, label, desc, order)
     clickBtn.MouseButton1Click:Connect(function()
         tog:SetValue(not tog.Value)
         -- Bounce: grow slightly then snap back
-        Tween(btn, TW_BOUNCE, { Size = UDim2.fromOffset(60, 52) })
+        Tween(btn, TW_BOUNCE, { Size = UDim2.fromOffset(44, 40) })
         task.delay(0.15, function()
-            Tween(btn, TW_FAST, { Size = UDim2.fromOffset(56, 48) })
+            Tween(btn, TW_FAST, { Size = UDim2.fromOffset(40, 36) })
         end)
     end)
 
     -- Subtle hover scale
-    clickBtn.MouseEnter:Connect(function() Tween(btn, TW_FAST, { Size = UDim2.fromOffset(58, 50) }) end)
-    clickBtn.MouseLeave:Connect(function() Tween(btn, TW_FAST, { Size = UDim2.fromOffset(56, 48) }) end)
+    clickBtn.MouseEnter:Connect(function() Tween(btn, TW_FAST, { Size = UDim2.fromOffset(42, 38) }) end)
+    clickBtn.MouseLeave:Connect(function() Tween(btn, TW_FAST, { Size = UDim2.fromOffset(40, 36) }) end)
 end
 
 -- ─── Action card ──────────────────────────────────────────────────────────────
