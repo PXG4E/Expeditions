@@ -1,17 +1,33 @@
 --[[
     Settings.lua — Obsidian UI Settings Script
-    Repo: https://github.com/deividcomsono/Obsidian
-    
-    Drop this file into your forked repo and execute via:
-        loadstring(game:HttpGet("https://raw.githubusercontent.com/PXG4E/Obsidian/main/Settings.lua"))()
-    
-    Or run locally in Roblox Studio via the Script Editor.
+    Repo: https://github.com/PXG4E/Expeditions
+
+    Run this in your executor:
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/PXG4E/Expeditions/main/Settings.lua"))()
 --]]
 
-local repo = "https://raw.githubusercontent.com/deividcomsono/Obsidian/main/"
-local Library     = loadstring(game:HttpGet(repo .. "Library.lua"))()
-local ThemeManager = loadstring(game:HttpGet(repo .. "addons/ThemeManager.lua"))()
-local SaveManager  = loadstring(game:HttpGet(repo .. "addons/SaveManager.lua"))()
+-- Load the Obsidian library from your fork
+local repo = "https://raw.githubusercontent.com/PXG4E/Expeditions/main/"
+
+local function SafeLoad(url)
+    local ok, result = pcall(function()
+        return loadstring(game:HttpGet(url))()
+    end)
+    if not ok then
+        warn("[Settings] Failed to load: " .. url .. "\nError: " .. tostring(result))
+        return nil
+    end
+    return result
+end
+
+local Library      = SafeLoad(repo .. "Library.lua")
+local ThemeManager = SafeLoad(repo .. "addons/ThemeManager.lua")
+local SaveManager  = SafeLoad(repo .. "addons/SaveManager.lua")
+
+if not Library then
+    warn("[Settings] Library failed to load. Check your repo is public and the files exist.")
+    return
+end
 
 local Options = Library.Options
 local Toggles = Library.Toggles
@@ -19,16 +35,15 @@ local Toggles = Library.Toggles
 -- ─── Window ───────────────────────────────────────────────────────────────────
 
 local Window = Library:CreateWindow({
-    Title         = "Settings",
-    Footer        = "",
+    Title            = "Settings",
+    Footer           = "Expeditions",
     ShowCustomCursor = true,
-    NotifySide    = "Right",
-    AutoShow      = true,
-    -- Center the window on screen
-    Center        = true,
+    NotifySide       = "Right",
+    AutoShow         = true,
+    Center           = true,
 })
 
--- ─── Tabs (sidebar categories) ────────────────────────────────────────────────
+-- ─── Tabs ─────────────────────────────────────────────────────────────────────
 
 local Tabs = {
     Audio         = Window:AddTab("Audio",         "music"),
@@ -43,13 +58,13 @@ local Tabs = {
 }
 
 -- ═══════════════════════════════════════════════════════════════════════════════
--- AUDIO TAB
+-- AUDIO
 -- ═══════════════════════════════════════════════════════════════════════════════
 
-local AudioLeft  = Tabs.Audio:AddLeftGroupbox("Volume")
-local AudioRight = Tabs.Audio:AddRightGroupbox("Volume")
+local AudioLeft   = Tabs.Audio:AddLeftGroupbox("Volume")
+local AudioRight  = Tabs.Audio:AddRightGroupbox("Volume")
+local AudioBottom = Tabs.Audio:AddLeftGroupbox("Ambient")
 
--- Music Volume
 AudioLeft:AddSlider("MusicVolume", {
     Text     = "Music Volume",
     Tooltip  = "Adjusts all game music volume",
@@ -57,20 +72,12 @@ AudioLeft:AddSlider("MusicVolume", {
     Min      = 0,
     Max      = 2,
     Rounding = 1,
-    Compact  = false,
     HideMax  = true,
-
     Callback = function(Value)
-        -- Wire to your game's SoundService music group:
         -- game:GetService("SoundService"):SetVolumeByName("Music", Value)
     end,
 })
 
-Options.MusicVolume:OnChanged(function()
-    -- game:GetService("SoundService"):SetVolumeByName("Music", Options.MusicVolume.Value)
-end)
-
--- SFX Volume
 AudioRight:AddSlider("SFXVolume", {
     Text     = "SFX Volume",
     Tooltip  = "Adjusts all game sound effect volume",
@@ -78,16 +85,11 @@ AudioRight:AddSlider("SFXVolume", {
     Min      = 0,
     Max      = 2,
     Rounding = 1,
-    Compact  = false,
     HideMax  = true,
-
     Callback = function(Value)
         -- game:GetService("SoundService"):SetVolumeByName("SFX", Value)
     end,
 })
-
--- Ambient Volume (spans bottom row)
-local AudioBottom = Tabs.Audio:AddLeftGroupbox("Ambient")
 
 AudioBottom:AddSlider("AmbientVolume", {
     Text     = "Ambient Volume",
@@ -96,146 +98,100 @@ AudioBottom:AddSlider("AmbientVolume", {
     Min      = 0,
     Max      = 2,
     Rounding = 1,
-    Compact  = false,
     HideMax  = true,
-
     Callback = function(Value)
         -- game:GetService("SoundService"):SetVolumeByName("Ambient", Value)
     end,
 })
 
 -- ═══════════════════════════════════════════════════════════════════════════════
--- GAMEPLAY TAB
+-- GAMEPLAY
 -- ═══════════════════════════════════════════════════════════════════════════════
 
 local GameplayLeft  = Tabs.Gameplay:AddLeftGroupbox("Actions & Toggles")
 local GameplayRight = Tabs.Gameplay:AddRightGroupbox("Automation")
 
--- ── Left column ───────────────────────────────────────────────────────────────
-
--- Teleport To Spawn (action button)
 GameplayLeft:AddButton({
     Text        = "Teleport To Spawn",
     Tooltip     = "Go to your current map's spawn point",
     DoubleClick = false,
-
     Func = function()
-        local LocalPlayer = game:GetService("Players").LocalPlayer
-        local SpawnLocation = workspace:FindFirstChildOfClass("SpawnLocation")
-        if SpawnLocation then
-            if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-                LocalPlayer.Character.HumanoidRootPart.CFrame = SpawnLocation.CFrame + Vector3.new(0, 3, 0)
-            end
+        local lp = game:GetService("Players").LocalPlayer
+        local spawn = workspace:FindFirstChildOfClass("SpawnLocation")
+        if spawn and lp.Character and lp.Character:FindFirstChild("HumanoidRootPart") then
+            lp.Character.HumanoidRootPart.CFrame = spawn.CFrame + Vector3.new(0, 3, 0)
         end
     end,
 })
 
--- Auto Vote Start
 GameplayLeft:AddToggle("AutoVoteStart", {
     Text    = "Auto Vote Start",
     Tooltip = "Automatically vote to start games",
     Default = false,
-
-    Callback = function(Value)
-        -- hook into your vote system here
-    end,
+    Callback = function(Value) end,
 })
 
--- Display Pinned Quests
 GameplayLeft:AddToggle("DisplayPinnedQuests", {
     Text    = "Display Pinned Quests",
     Tooltip = "Display all pinned quests in-game",
     Default = true,
-
-    Callback = function(Value)
-        -- toggle quest display GUI here
-    end,
+    Callback = function(Value) end,
 })
 
--- Show Max Range on Placement
 GameplayLeft:AddToggle("ShowMaxRange", {
     Text    = "Show Max Range on Placement",
     Tooltip = "Show units' max range when placing",
     Default = true,
-
-    Callback = function(Value)
-        -- toggle range visualizer here
-    end,
+    Callback = function(Value) end,
 })
 
--- Auto Retry
 GameplayLeft:AddToggle("AutoRetry", {
     Text    = "Auto Retry",
     Tooltip = "Automatically retry when a match ends",
     Default = false,
-    Risky   = true, -- highlighted red as a "risky" setting
-
-    Callback = function(Value)
-        -- hook into match end event here
-    end,
+    Risky   = true,
+    Callback = function(Value) end,
 })
 
--- ── Right column ──────────────────────────────────────────────────────────────
-
--- Auto Skip Waves
 GameplayRight:AddToggle("AutoSkipWaves", {
     Text    = "Auto Skip Waves",
     Tooltip = "Automatically vote to skip waves",
     Default = false,
     Risky   = true,
-
-    Callback = function(Value)
-        -- hook into wave vote system here
-    end,
+    Callback = function(Value) end,
 })
 
--- Show Match End Rewards
 GameplayRight:AddToggle("ShowMatchEndRewards", {
     Text    = "Show Match End Rewards",
     Tooltip = "Show reward pop-ups after matches",
     Default = true,
-
-    Callback = function(Value)
-        -- toggle rewards GUI here
-    end,
+    Callback = function(Value) end,
 })
 
--- Select Unit on Placement
 GameplayRight:AddToggle("SelectUnitOnPlacement", {
     Text    = "Select Unit on Placement",
     Tooltip = "Automatically select placed units",
     Default = true,
-
-    Callback = function(Value)
-        -- toggle unit selection logic here
-    end,
+    Callback = function(Value) end,
 })
 
--- Display Path Visualizers
 GameplayRight:AddToggle("DisplayPathVisualizers", {
     Text    = "Display Path Visualizers",
     Tooltip = "Display path visualizers in-game",
     Default = true,
-
-    Callback = function(Value)
-        -- toggle path lines here
-    end,
+    Callback = function(Value) end,
 })
 
--- Auto Next
 GameplayRight:AddToggle("AutoNext", {
     Text    = "Auto Next",
     Tooltip = "Automatically proceed to the next match",
     Default = false,
     Risky   = true,
-
-    Callback = function(Value)
-        -- hook into next-match event here
-    end,
+    Callback = function(Value) end,
 })
 
 -- ═══════════════════════════════════════════════════════════════════════════════
--- GRAPHICS TAB
+-- GRAPHICS
 -- ═══════════════════════════════════════════════════════════════════════════════
 
 local GraphicsLeft  = Tabs.Graphics:AddLeftGroupbox("Quality")
@@ -248,7 +204,6 @@ GraphicsLeft:AddSlider("QualityLevel", {
     Min      = 1,
     Max      = 21,
     Rounding = 0,
-
     Callback = function(Value)
         settings().Rendering.QualityLevel = Enum.QualityLevel["Level" .. tostring(Value)]
     end,
@@ -258,7 +213,6 @@ GraphicsLeft:AddToggle("Shadows", {
     Text    = "Shadows",
     Tooltip = "Toggle in-game shadows",
     Default = true,
-
     Callback = function(Value)
         game:GetService("Lighting").GlobalShadows = Value
     end,
@@ -268,24 +222,18 @@ GraphicsRight:AddToggle("ShowFPS", {
     Text    = "Show FPS Counter",
     Tooltip = "Display an in-game FPS counter",
     Default = false,
-
-    Callback = function(Value)
-        -- toggle FPS label here
-    end,
+    Callback = function(Value) end,
 })
 
 GraphicsRight:AddToggle("ReduceParticles", {
     Text    = "Reduce Particles",
     Tooltip = "Reduce particle effects for better performance",
     Default = false,
-
-    Callback = function(Value)
-        -- iterate Workspace descendants and reduce ParticleEmitter rates
-    end,
+    Callback = function(Value) end,
 })
 
 -- ═══════════════════════════════════════════════════════════════════════════════
--- UNITS TAB
+-- UNITS
 -- ═══════════════════════════════════════════════════════════════════════════════
 
 local UnitsLeft  = Tabs.Units:AddLeftGroupbox("Placement")
@@ -321,7 +269,7 @@ UnitsRight:AddToggle("ConfirmSell", {
 })
 
 -- ═══════════════════════════════════════════════════════════════════════════════
--- ENEMIES TAB
+-- ENEMIES
 -- ═══════════════════════════════════════════════════════════════════════════════
 
 local EnemiesLeft  = Tabs.Enemies:AddLeftGroupbox("Display")
@@ -356,7 +304,7 @@ EnemiesRight:AddToggle("EnemyPathPreview", {
 })
 
 -- ═══════════════════════════════════════════════════════════════════════════════
--- MISCELLANEOUS TAB
+-- MISCELLANEOUS
 -- ═══════════════════════════════════════════════════════════════════════════════
 
 local MiscLeft  = Tabs.Miscellaneous:AddLeftGroupbox("General")
@@ -392,202 +340,114 @@ MiscRight:AddToggle("ChatNotifications", {
 })
 
 -- ═══════════════════════════════════════════════════════════════════════════════
--- KEYBINDS TAB
+-- KEYBINDS
 -- ═══════════════════════════════════════════════════════════════════════════════
 
 local KeyLeft  = Tabs.Keybinds:AddLeftGroupbox("Movement & Interaction")
 local KeyRight = Tabs.Keybinds:AddRightGroupbox("Units & Menus")
 
--- Reset all keybinds to defaults
 KeyLeft:AddButton({
     Text        = "Reset Keybinds",
-    Tooltip     = "Reset all keybinds to their default values",
-    DoubleClick = true, -- safety: must click twice
-
+    Tooltip     = "Double-click to reset all keybinds to defaults",
+    DoubleClick = true,
     Func = function()
         local defaults = {
-            Dash                  = "Q",
-            InteractPrompt        = "E",
-            RotateUnit            = "R",
-            QuickPlacement        = "LeftShift",
-            AutoUpgradeUnit       = nil,
-            ChangeUnitTargeting   = "X",
-            ToggleAutoUpgrade     = nil,
-            ToggleQuestsMenu      = nil,
-            Sprint                = "LeftShift",
-            ToggleShiftLock       = "LeftControl",
-            CancelUnitPlacement   = "Z",
-            UpgradeUnit           = "X",
-            SellUnit              = "X",
-            ToggleAutoSkipWaves   = nil,
-            TogglePlayMenu        = nil,
-            ToggleAreasMenu       = nil,
+            Dash = "Q", InteractPrompt = "E", RotateUnit = "R",
+            QuickPlacement = "LeftShift", Sprint = "LeftShift",
+            ToggleShiftLock = "LeftControl", CancelUnitPlacement = "Z",
+            UpgradeUnit = "X", SellUnit = "X", ChangeUnitTargeting = "X",
         }
         for idx, key in pairs(defaults) do
-            if Options[idx] then
-                Options[idx]:SetValue({ key or "Unknown", "Toggle" })
-            end
+            if Options[idx] then Options[idx]:SetValue({ key, "Toggle" }) end
         end
-        Library:Notify({
-            Title       = "Keybinds Reset",
-            Description = "All keybinds have been reset to their defaults.",
-            Time        = 3,
-        })
+        Library:Notify({ Title = "Keybinds Reset", Description = "All keybinds reset to defaults.", Time = 3 })
     end,
 })
 
 KeyLeft:AddDivider()
 
--- ── Left keybinds ─────────────────────────────────────────────────────────────
-
 KeyLeft:AddLabel("Dash"):AddKeyPicker("Dash", {
-    Default        = "Q",
-    Mode           = "Press",
-    Text           = "Dash",
-    NoUI           = false,
-    Callback       = function() end,
-    ChangedCallback = function(NewKey) end,
+    Default = "Q", Mode = "Press", Text = "Dash", NoUI = false,
+    Callback = function() end,
 })
 
 KeyLeft:AddLabel("Interact Prompt"):AddKeyPicker("InteractPrompt", {
-    Default        = "E",
-    Mode           = "Press",
-    Text           = "Interact Prompt",
-    NoUI           = false,
-    Callback       = function() end,
-    ChangedCallback = function(NewKey) end,
+    Default = "E", Mode = "Press", Text = "Interact Prompt", NoUI = false,
+    Callback = function() end,
 })
 
 KeyLeft:AddLabel("Rotate Unit"):AddKeyPicker("RotateUnit", {
-    Default        = "R",
-    Mode           = "Press",
-    Text           = "Rotate Unit",
-    NoUI           = false,
-    Callback       = function() end,
-    ChangedCallback = function(NewKey) end,
+    Default = "R", Mode = "Press", Text = "Rotate Unit", NoUI = false,
+    Callback = function() end,
 })
 
 KeyLeft:AddLabel("Quick Placement"):AddKeyPicker("QuickPlacement", {
-    Default        = "LeftShift",
-    Mode           = "Hold",
-    Text           = "Quick Placement",
-    NoUI           = false,
-    Callback       = function() end,
-    ChangedCallback = function(NewKey) end,
+    Default = "LeftShift", Mode = "Hold", Text = "Quick Placement", NoUI = false,
+    Callback = function() end,
 })
 
 KeyLeft:AddLabel("Auto Upgrade Unit"):AddKeyPicker("AutoUpgradeUnit", {
-    Default        = "Unknown",
-    Mode           = "Toggle",
-    Text           = "Auto Upgrade Unit",
-    NoUI           = false,
-    Callback       = function() end,
-    ChangedCallback = function(NewKey) end,
+    Default = "Unknown", Mode = "Toggle", Text = "Auto Upgrade Unit", NoUI = false,
+    Callback = function() end,
 })
 
 KeyLeft:AddLabel("Change Unit Targeting"):AddKeyPicker("ChangeUnitTargeting", {
-    Default        = "X",
-    Mode           = "Press",
-    Text           = "Change Unit Targeting",
-    NoUI           = false,
-    Callback       = function() end,
-    ChangedCallback = function(NewKey) end,
+    Default = "X", Mode = "Press", Text = "Change Unit Targeting", NoUI = false,
+    Callback = function() end,
 })
 
 KeyLeft:AddLabel("Toggle Auto-Upgrade Placed Units"):AddKeyPicker("ToggleAutoUpgrade", {
-    Default        = "Unknown",
-    Mode           = "Toggle",
-    Text           = "Toggle Auto-Upgrade Placed Units",
-    NoUI           = false,
-    Callback       = function() end,
-    ChangedCallback = function(NewKey) end,
+    Default = "Unknown", Mode = "Toggle", Text = "Toggle Auto-Upgrade Placed Units", NoUI = false,
+    Callback = function() end,
 })
 
 KeyLeft:AddLabel("Toggle Quests Menu"):AddKeyPicker("ToggleQuestsMenu", {
-    Default        = "Unknown",
-    Mode           = "Toggle",
-    Text           = "Toggle Quests Menu",
-    NoUI           = false,
-    Callback       = function() end,
-    ChangedCallback = function(NewKey) end,
+    Default = "Unknown", Mode = "Toggle", Text = "Toggle Quests Menu", NoUI = false,
+    Callback = function() end,
 })
 
--- ── Right keybinds ────────────────────────────────────────────────────────────
-
 KeyRight:AddLabel("Sprint"):AddKeyPicker("Sprint", {
-    Default        = "LeftShift",
-    Mode           = "Hold",
-    Text           = "Sprint",
-    NoUI           = false,
-    Callback       = function() end,
-    ChangedCallback = function(NewKey) end,
+    Default = "LeftShift", Mode = "Hold", Text = "Sprint", NoUI = false,
+    Callback = function() end,
 })
 
 KeyRight:AddLabel("Toggle Shift Lock"):AddKeyPicker("ToggleShiftLock", {
-    Default        = "LeftControl",
-    Mode           = "Toggle",
-    Text           = "Toggle Shift Lock",
-    NoUI           = false,
-    Callback       = function() end,
-    ChangedCallback = function(NewKey) end,
+    Default = "LeftControl", Mode = "Toggle", Text = "Toggle Shift Lock", NoUI = false,
+    Callback = function() end,
 })
 
 KeyRight:AddLabel("Cancel Unit Placement"):AddKeyPicker("CancelUnitPlacement", {
-    Default        = "Z",
-    Mode           = "Press",
-    Text           = "Cancel Unit Placement",
-    NoUI           = false,
-    Callback       = function() end,
-    ChangedCallback = function(NewKey) end,
+    Default = "Z", Mode = "Press", Text = "Cancel Unit Placement", NoUI = false,
+    Callback = function() end,
 })
 
 KeyRight:AddLabel("Upgrade Unit"):AddKeyPicker("UpgradeUnit", {
-    Default        = "X",
-    Mode           = "Press",
-    Text           = "Upgrade Unit",
-    NoUI           = false,
-    Callback       = function() end,
-    ChangedCallback = function(NewKey) end,
+    Default = "X", Mode = "Press", Text = "Upgrade Unit", NoUI = false,
+    Callback = function() end,
 })
 
 KeyRight:AddLabel("Sell Unit"):AddKeyPicker("SellUnit", {
-    Default        = "X",
-    Mode           = "Press",
-    Text           = "Sell Unit",
-    NoUI           = false,
-    Callback       = function() end,
-    ChangedCallback = function(NewKey) end,
+    Default = "X", Mode = "Press", Text = "Sell Unit", NoUI = false,
+    Callback = function() end,
 })
 
 KeyRight:AddLabel("Toggle Auto Skip Waves"):AddKeyPicker("ToggleAutoSkipWaves", {
-    Default        = "Unknown",
-    Mode           = "Toggle",
-    Text           = "Toggle Auto Skip Waves",
-    NoUI           = false,
-    Callback       = function() end,
-    ChangedCallback = function(NewKey) end,
+    Default = "Unknown", Mode = "Toggle", Text = "Toggle Auto Skip Waves", NoUI = false,
+    Callback = function() end,
 })
 
 KeyRight:AddLabel("Toggle Play Menu"):AddKeyPicker("TogglePlayMenu", {
-    Default        = "Unknown",
-    Mode           = "Toggle",
-    Text           = "Toggle Play Menu",
-    NoUI           = false,
-    Callback       = function() end,
-    ChangedCallback = function(NewKey) end,
+    Default = "Unknown", Mode = "Toggle", Text = "Toggle Play Menu", NoUI = false,
+    Callback = function() end,
 })
 
 KeyRight:AddLabel("Toggle Areas Menu"):AddKeyPicker("ToggleAreasMenu", {
-    Default        = "Unknown",
-    Mode           = "Toggle",
-    Text           = "Toggle Areas Menu",
-    NoUI           = false,
-    Callback       = function() end,
-    ChangedCallback = function(NewKey) end,
+    Default = "Unknown", Mode = "Toggle", Text = "Toggle Areas Menu", NoUI = false,
+    Callback = function() end,
 })
 
 -- ═══════════════════════════════════════════════════════════════════════════════
--- TESTING TAB
+-- TESTING
 -- ═══════════════════════════════════════════════════════════════════════════════
 
 local TestLeft  = Tabs.Testing:AddLeftGroupbox("Debug Tools")
@@ -595,23 +455,19 @@ local TestRight = Tabs.Testing:AddRightGroupbox("Logging")
 
 TestLeft:AddToggle("DebugMode", {
     Text    = "Debug Mode",
-    Tooltip = "Enable debug overlays and verbose logging",
+    Tooltip = "Enable debug overlays",
     Default = false,
     Risky   = true,
     Callback = function(Value) end,
 })
 
 TestLeft:AddButton({
-    Text   = "Print All Settings",
-    Tooltip = "Dump all current setting values to the output",
+    Text    = "Print All Settings",
+    Tooltip = "Dump all current values to output",
     Func = function()
-        for k, v in pairs(Toggles) do
-            print(k, "=", v.Value)
-        end
+        for k, v in pairs(Toggles) do print(k, "=", v.Value) end
         for k, v in pairs(Options) do
-            if v.Value ~= nil then
-                print(k, "=", v.Value)
-            end
+            if v.Value ~= nil then print(k, "=", v.Value) end
         end
     end,
 })
@@ -624,7 +480,7 @@ TestRight:AddToggle("VerboseLogging", {
 })
 
 -- ═══════════════════════════════════════════════════════════════════════════════
--- UI SETTINGS TAB  (theme + save/load config)
+-- UI SETTINGS (theme + save/load)
 -- ═══════════════════════════════════════════════════════════════════════════════
 
 local MenuGroup = Tabs.UISettings:AddLeftGroupbox("Menu", "wrench")
@@ -677,16 +533,17 @@ Library.ToggleKeybind = Options.MenuKeybind
 
 -- ─── Addons ───────────────────────────────────────────────────────────────────
 
-ThemeManager:SetLibrary(Library)
-SaveManager:SetLibrary(Library)
+if ThemeManager then
+    ThemeManager:SetLibrary(Library)
+    ThemeManager:SetFolder("Expeditions")
+    ThemeManager:ApplyToTab(Tabs.UISettings)
+end
 
-SaveManager:IgnoreThemeSettings()
-SaveManager:SetIgnoreIndexes({ "MenuKeybind" })
-
-ThemeManager:SetFolder("ObsidianSettings")
-SaveManager:SetFolder("ObsidianSettings")
-
-SaveManager:BuildConfigSection(Tabs.UISettings)
-ThemeManager:ApplyToTab(Tabs.UISettings)
-
-SaveManager:LoadAutoloadConfig()
+if SaveManager then
+    SaveManager:SetLibrary(Library)
+    SaveManager:IgnoreThemeSettings()
+    SaveManager:SetIgnoreIndexes({ "MenuKeybind" })
+    SaveManager:SetFolder("Expeditions")
+    SaveManager:BuildConfigSection(Tabs.UISettings)
+    SaveManager:LoadAutoloadConfig()
+end
