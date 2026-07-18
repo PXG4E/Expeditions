@@ -841,14 +841,19 @@ local TAB_DEFS = {
     { name="Testing",       icon="flask-conical"  },
 }
 
+-- Muted colour used when hovering an inactive tab (contrast goes down)
+local TAB_DIM = Color3.fromRGB(72, 72, 88)
+
 local function switchTab(name)
     activeTab = name
     for n, data in pairs(tabBtns) do
         local isActive = (n == name)
-        -- Gold gradient overlay: fade in when active, fade out when inactive
+        -- Gold gradient overlay: fade in when active, hide when inactive
         Tween(data.goldOverlay, TW_FAST, { BackgroundTransparency = isActive and 0 or 1 })
         Tween(data.btn, TW_FAST, { BackgroundColor3 = isActive and C.GoldLo or C.TabBg })
-        -- Bounce pop on the newly active tab
+        -- Always hide the hover outline when switching tabs
+        if data.hoverStroke then data.hoverStroke.Transparency = 1 end
+        -- Scale bounce on the newly active tab
         if isActive then
             Tween(data.uiScale, TW_BOUNCE, { Scale = 1.07 })
             task.delay(0.2, function()
@@ -882,7 +887,7 @@ for i, td in ipairs(TAB_DEFS) do
     }, TabScroll)
     Corner(8, btn)
 
-    -- Gold gradient overlay — created first so icon/label render on top
+    -- Gold gradient overlay — rendered first so icon/label sit on top
     local goldOverlay = New("Frame", {
         Size             = UDim2.fromScale(1, 1),
         BackgroundColor3 = C.GoldLo,
@@ -896,7 +901,15 @@ for i, td in ipairs(TAB_DEFS) do
         Rotation = 90,
     }, goldOverlay)
 
-    -- Per-button UIScale for smooth hover pop-up
+    -- Gold outline that appears on hover (starts invisible)
+    local hoverStroke = New("UIStroke", {
+        Color       = C.Cyan,   -- gold
+        Thickness   = 1.5,
+        Transparency = 1,       -- fully transparent at rest
+    }, btn)
+    hoverStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+
+    -- Per-button UIScale for the hover pop-up effect
     local uiScale = New("UIScale", { Scale = 1 }, btn)
 
     local icImg = IconImg(btn, td.icon, C.Sub, UDim2.new(0, 12, 0.5, -9), UDim2.fromOffset(18, 18))
@@ -912,22 +925,29 @@ for i, td in ipairs(TAB_DEFS) do
         TextXAlignment     = Enum.TextXAlignment.Left,
     }, btn)
 
-    tabBtns[td.name] = { btn=btn, lbl=lbl, icImg=icImg, goldOverlay=goldOverlay, uiScale=uiScale }
+    tabBtns[td.name] = {
+        btn=btn, lbl=lbl, icImg=icImg,
+        goldOverlay=goldOverlay, uiScale=uiScale, hoverStroke=hoverStroke
+    }
 
     btn.MouseEnter:Connect(function()
         if activeTab ~= td.name then
-            Tween(btn, TW_FAST, { BackgroundColor3 = Color3.fromRGB(40, 40, 52) })
-            Tween(uiScale, TW_FAST, { Scale = 1.05 })
-            if icImg then Tween(icImg, TW_FAST, { ImageColor3 = C.Cyan }) end
-            if lbl   then Tween(lbl,   TW_FAST, { TextColor3  = C.Text }) end
+            -- Outline pops in, scale pops up, text/icon go MORE muted
+            Tween(hoverStroke, TW_FAST, { Transparency = 0 })
+            Tween(uiScale,     TW_FAST, { Scale        = 1.05 })
+            if icImg then Tween(icImg, TW_FAST, { ImageColor3 = TAB_DIM }) end
+            if lbl   then Tween(lbl,   TW_FAST, { TextColor3  = TAB_DIM }) end
         else
+            -- Already active — just a gentle scale nudge
             Tween(uiScale, TW_FAST, { Scale = 1.03 })
         end
     end)
+
     btn.MouseLeave:Connect(function()
         Tween(uiScale, TW_FAST, { Scale = 1.0 })
         if activeTab ~= td.name then
-            Tween(btn, TW_FAST, { BackgroundColor3 = C.TabBg })
+            -- Outline disappears, text/icon restore to normal muted colour
+            Tween(hoverStroke, TW_FAST, { Transparency = 1 })
             if icImg then Tween(icImg, TW_FAST, { ImageColor3 = C.Sub }) end
             if lbl   then Tween(lbl,   TW_FAST, { TextColor3  = C.Sub }) end
         end
