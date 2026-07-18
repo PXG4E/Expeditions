@@ -8,845 +8,436 @@
 
 local Players          = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
-local TweenService     = game:GetService("TweenService")
 
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui   = LocalPlayer:WaitForChild("PlayerGui")
 
--- ─── Destroy old instance ─────────────────────────────────────────────────────
-local existing = PlayerGui:FindFirstChild("SettingsGui")
-if existing then existing:Destroy() end
+-- destroy old instance if re-ran
+pcall(function()
+    local old = PlayerGui:FindFirstChild("SettingsGui")
+    if old then old:Destroy() end
+end)
 
--- ─── Constants ────────────────────────────────────────────────────────────────
+-- ─── Colours ──────────────────────────────────────────────────────────────────
 local C = {
-    BG         = Color3.fromRGB(12,  15,  20),
-    SidebarBG  = Color3.fromRGB(18,  22,  30),
-    CardBG     = Color3.fromRGB(22,  27,  35),
-    CardBorder = Color3.fromRGB(35,  42,  55),
-    Cyan       = Color3.fromRGB(0,   210, 255),
-    CyanDark   = Color3.fromRGB(0,   160, 200),
-    Text       = Color3.fromRGB(220, 225, 235),
-    SubText    = Color3.fromRGB(130, 135, 150),
-    Green      = Color3.fromRGB(30,  180, 80),
-    Red        = Color3.fromRGB(210, 40,  50),
-    SearchBG   = Color3.fromRGB(28,  33,  45),
-    SliderBG   = Color3.fromRGB(38,  44,  58),
-    SliderFill = Color3.fromRGB(120, 125, 140),
-    White      = Color3.new(1, 1, 1),
-    Black      = Color3.new(0, 0, 0),
+    BG        = Color3.fromRGB(12,  15,  20),
+    Sidebar   = Color3.fromRGB(18,  22,  30),
+    Card      = Color3.fromRGB(22,  27,  35),
+    CardBdr   = Color3.fromRGB(38,  46,  62),
+    Cyan      = Color3.fromRGB(0,   210, 255),
+    CyanDim   = Color3.fromRGB(0,   160, 200),
+    Text      = Color3.fromRGB(220, 225, 235),
+    Sub       = Color3.fromRGB(130, 135, 150),
+    Green     = Color3.fromRGB(30,  175, 75),
+    Red       = Color3.fromRGB(210, 40,  50),
+    Search    = Color3.fromRGB(28,  33,  45),
+    SliderBG  = Color3.fromRGB(38,  44,  58),
+    SliderFG  = Color3.fromRGB(110, 115, 135),
+    White     = Color3.new(1, 1, 1),
+    Black     = Color3.new(0, 0, 0),
 }
 
--- ─── Helper: new instance ─────────────────────────────────────────────────────
-local function New(class, props, parent)
-    local obj = Instance.new(class)
-    for k, v in pairs(props) do
-        obj[k] = v
-    end
-    if parent then obj.Parent = parent end
-    return obj
+-- ─── Helpers ──────────────────────────────────────────────────────────────────
+local function New(cls, props, parent)
+    local o = Instance.new(cls)
+    for k, v in pairs(props) do o[k] = v end
+    if parent then o.Parent = parent end
+    return o
 end
-
-local function Corner(radius, parent)
-    return New("UICorner", { CornerRadius = UDim.new(0, radius) }, parent)
-end
-
-local function Stroke(color, thickness, parent)
-    local s = New("UIStroke", { Color = color, Thickness = thickness }, parent)
+local function Corner(r, p) New("UICorner", { CornerRadius = UDim.new(0, r) }, p) end
+local function Stroke(col, thick, p)
+    local s = New("UIStroke", { Color = col, Thickness = thick }, p)
     s.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-    return s
 end
-
-local function Padding(all, parent)
-    return New("UIPadding", {
-        PaddingTop    = UDim.new(0, all),
-        PaddingBottom = UDim.new(0, all),
-        PaddingLeft   = UDim.new(0, all),
-        PaddingRight  = UDim.new(0, all),
-    }, parent)
+local function ListLayout(p, pad)
+    New("UIListLayout", { SortOrder = Enum.SortOrder.LayoutOrder, Padding = UDim.new(0, pad or 0) }, p)
+end
+local function Pad(t, b, l, r, p)
+    New("UIPadding", { PaddingTop = UDim.new(0,t), PaddingBottom = UDim.new(0,b), PaddingLeft = UDim.new(0,l), PaddingRight = UDim.new(0,r) }, p)
 end
 
 -- ─── Root ─────────────────────────────────────────────────────────────────────
-local ScreenGui = New("ScreenGui", {
-    Name            = "SettingsGui",
-    ResetOnSpawn    = false,
-    ZIndexBehavior  = Enum.ZIndexBehavior.Sibling,
-}, PlayerGui)
+local Gui = New("ScreenGui", { Name = "SettingsGui", ResetOnSpawn = false, ZIndexBehavior = Enum.ZIndexBehavior.Sibling }, PlayerGui)
 
--- ─── Backdrop ─────────────────────────────────────────────────────────────────
-local Backdrop = New("Frame", {
-    Size              = UDim2.fromScale(1, 1),
-    BackgroundColor3  = Color3.new(0, 0, 0),
-    BackgroundTransparency = 0.5,
-}, ScreenGui)
+-- dim backdrop
+New("TextButton", { Size = UDim2.fromScale(1,1), BackgroundColor3 = Color3.new(0,0,0), BackgroundTransparency = 0.45, Text = "", ZIndex = 1 }, Gui)
 
--- ─── Main Window ──────────────────────────────────────────────────────────────
+-- ─── Window ───────────────────────────────────────────────────────────────────
 local Win = New("Frame", {
     AnchorPoint      = Vector2.new(0.5, 0.5),
     Position         = UDim2.fromScale(0.5, 0.5),
-    Size             = UDim2.fromOffset(980, 660),
+    Size             = UDim2.fromOffset(980, 640),
     BackgroundColor3 = C.BG,
     ClipsDescendants = true,
-}, ScreenGui)
+    ZIndex           = 2,
+}, Gui)
 Corner(8, Win)
 Stroke(C.Cyan, 2, Win)
 
--- Make window draggable
+-- drag
 do
-    local dragging, dragStart, startPos = false, nil, nil
-    Win.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            dragging  = true
-            dragStart = input.Position
-            startPos  = Win.Position
-        end
+    local drag, dragStart, winStart = false, nil, nil
+    Win.InputBegan:Connect(function(i)
+        if i.UserInputType == Enum.UserInputType.MouseButton1 then drag = true; dragStart = i.Position; winStart = Win.Position end
     end)
-    Win.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            dragging = false
-        end
+    Win.InputEnded:Connect(function(i)
+        if i.UserInputType == Enum.UserInputType.MouseButton1 then drag = false end
     end)
-    UserInputService.InputChanged:Connect(function(input)
-        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-            local delta = input.Position - dragStart
-            Win.Position = UDim2.new(
-                startPos.X.Scale, startPos.X.Offset + delta.X,
-                startPos.Y.Scale, startPos.Y.Offset + delta.Y
-            )
+    UserInputService.InputChanged:Connect(function(i)
+        if drag and i.UserInputType == Enum.UserInputType.MouseMovement then
+            local d = i.Position - dragStart
+            Win.Position = UDim2.new(winStart.X.Scale, winStart.X.Offset + d.X, winStart.Y.Scale, winStart.Y.Offset + d.Y)
         end
     end)
 end
 
 -- ─── Top Bar ──────────────────────────────────────────────────────────────────
-local TopBar = New("Frame", {
-    Size             = UDim2.new(1, 0, 0, 62),
-    BackgroundColor3 = C.BG,
-    ZIndex           = 2,
-}, Win)
+local TopBar = New("Frame", { Size = UDim2.new(1,0,0,62), BackgroundColor3 = C.BG, ZIndex = 3 }, Win)
 
--- "SETTINGS" badge (cyan left panel)
-local HeaderBadge = New("Frame", {
-    Size             = UDim2.fromOffset(222, 62),
-    BackgroundColor3 = C.Cyan,
-    ZIndex           = 2,
-}, TopBar)
-New("UICorner", { CornerRadius = UDim.new(0, 0) }, HeaderBadge)
-
--- Icon + title
+-- cyan badge
+local Badge = New("Frame", { Size = UDim2.fromOffset(228, 62), BackgroundColor3 = C.Cyan, ZIndex = 3 }, TopBar)
 New("TextLabel", {
-    Size             = UDim2.fromScale(1, 1),
-    BackgroundTransparency = 1,
-    Text             = "⚙  SETTINGS",
-    TextColor3       = C.Black,
-    Font             = Enum.Font.GothamBold,
-    TextSize         = 20,
-    ZIndex           = 3,
-}, HeaderBadge)
+    Size = UDim2.fromScale(1,1), BackgroundTransparency = 1,
+    Text = "⚙  SETTINGS", TextColor3 = C.Black,
+    Font = Enum.Font.GothamBold, TextSize = 20, ZIndex = 4,
+}, Badge)
+-- diagonal overhang
+New("Frame", { Position = UDim2.fromOffset(212,-2), Size = UDim2.fromOffset(36, 66), BackgroundColor3 = C.Cyan, Rotation = -8, ZIndex = 3 }, TopBar)
 
--- Diagonal slash decoration on the right edge of the badge
-local Slash = New("Frame", {
-    AnchorPoint      = Vector2.new(0, 0),
-    Position         = UDim2.fromOffset(210, 0),
-    Size             = UDim2.fromOffset(40, 62),
-    BackgroundColor3 = C.Cyan,
-    Rotation         = -8,
-    ZIndex           = 2,
+-- search
+local SrchFrame = New("Frame", {
+    AnchorPoint = Vector2.new(0.5,0.5), Position = UDim2.new(0.5,10,0.5,0),
+    Size = UDim2.fromOffset(370,36), BackgroundColor3 = C.Search, ZIndex = 4,
 }, TopBar)
-
--- Search bar
-local SearchBar = New("Frame", {
-    AnchorPoint      = Vector2.new(0.5, 0.5),
-    Position         = UDim2.new(0.5, 10, 0.5, 0),
-    Size             = UDim2.fromOffset(380, 36),
-    BackgroundColor3 = C.SearchBG,
-    ZIndex           = 2,
-}, TopBar)
-Corner(6, SearchBar)
-Stroke(C.CardBorder, 1, SearchBar)
-
-New("TextLabel", {
-    Size             = UDim2.fromOffset(20, 20),
-    Position         = UDim2.fromOffset(10, 8),
-    BackgroundTransparency = 1,
-    Text             = "🔍",
-    TextSize         = 14,
-    TextColor3       = C.SubText,
-    ZIndex           = 3,
-}, SearchBar)
-
+Corner(6, SrchFrame); Stroke(C.CardBdr, 1, SrchFrame)
+New("TextLabel", { Size = UDim2.fromOffset(28,36), BackgroundTransparency = 1, Text = "🔍", TextSize = 14, TextColor3 = C.Sub, ZIndex = 5 }, SrchFrame)
 local SearchBox = New("TextBox", {
-    Size             = UDim2.new(1, -40, 1, 0),
-    Position         = UDim2.fromOffset(34, 0),
-    BackgroundTransparency = 1,
-    PlaceholderText  = "Search...",
-    PlaceholderColor3 = C.SubText,
-    Text             = "",
-    TextColor3       = C.Text,
-    Font             = Enum.Font.Gotham,
-    TextSize         = 14,
-    TextXAlignment   = Enum.TextXAlignment.Left,
-    ClearTextOnFocus = false,
-    ZIndex           = 3,
-}, SearchBar)
+    Position = UDim2.fromOffset(28,0), Size = UDim2.new(1,-34,1,0),
+    BackgroundTransparency = 1, PlaceholderText = "Search...", PlaceholderColor3 = C.Sub,
+    Text = "", TextColor3 = C.Text, Font = Enum.Font.Gotham, TextSize = 14,
+    TextXAlignment = Enum.TextXAlignment.Left, ClearTextOnFocus = false, ZIndex = 5,
+}, SrchFrame)
 
--- Close button
+-- close
 local CloseBtn = New("TextButton", {
-    AnchorPoint      = Vector2.new(1, 0.5),
-    Position         = UDim2.new(1, -14, 0.5, 0),
-    Size             = UDim2.fromOffset(36, 36),
-    BackgroundColor3 = C.Red,
-    Text             = "✕",
-    TextColor3       = C.White,
-    Font             = Enum.Font.GothamBold,
-    TextSize         = 16,
-    ZIndex           = 3,
+    AnchorPoint = Vector2.new(1,0.5), Position = UDim2.new(1,-14,0.5,0),
+    Size = UDim2.fromOffset(36,36), BackgroundColor3 = C.Red,
+    Text = "✕", TextColor3 = C.White, Font = Enum.Font.GothamBold, TextSize = 16, ZIndex = 4,
 }, TopBar)
 Corner(6, CloseBtn)
-CloseBtn.MouseButton1Click:Connect(function()
-    ScreenGui:Destroy()
-end)
+CloseBtn.MouseButton1Click:Connect(function() Gui:Destroy() end)
 
--- Separator line under top bar
-New("Frame", {
-    Position         = UDim2.fromOffset(0, 62),
-    Size             = UDim2.new(1, 0, 0, 1),
-    BackgroundColor3 = C.Cyan,
-    BackgroundTransparency = 0.7,
-}, Win)
+-- separator
+New("Frame", { Position = UDim2.fromOffset(0,62), Size = UDim2.new(1,0,0,1), BackgroundColor3 = C.Cyan, BackgroundTransparency = 0.6, ZIndex = 3 }, Win)
 
--- ─── Left Sidebar ─────────────────────────────────────────────────────────────
-local Sidebar = New("Frame", {
-    Position         = UDim2.fromOffset(0, 63),
-    Size             = UDim2.new(0, 238, 1, -63),
-    BackgroundColor3 = C.SidebarBG,
-}, Win)
+-- ─── Sidebar ──────────────────────────────────────────────────────────────────
+local Sidebar = New("Frame", { Position = UDim2.fromOffset(0,63), Size = UDim2.new(0,238,1,-63), BackgroundColor3 = C.Sidebar, ZIndex = 2 }, Win)
+New("Frame", { AnchorPoint = Vector2.new(1,0), Position = UDim2.fromScale(1,0), Size = UDim2.new(0,1,1,0), BackgroundColor3 = C.Cyan, BackgroundTransparency = 0.55, ZIndex = 3 }, Sidebar)
 
--- Sidebar right border
-New("Frame", {
-    AnchorPoint      = Vector2.new(1, 0),
-    Position         = UDim2.fromScale(1, 0),
-    Size             = UDim2.new(0, 1, 1, 0),
-    BackgroundColor3 = C.Cyan,
-    BackgroundTransparency = 0.6,
+local TabScroll = New("ScrollingFrame", {
+    Size = UDim2.fromScale(1,1), BackgroundTransparency = 1, ScrollBarThickness = 0,
+    CanvasSize = UDim2.fromScale(0,0), AutomaticCanvasSize = Enum.AutomaticSize.Y, ZIndex = 3,
 }, Sidebar)
+ListLayout(TabScroll, 4)
+Pad(8, 8, 8, 8, TabScroll)
 
-local TabList = New("ScrollingFrame", {
-    Size                    = UDim2.fromScale(1, 1),
-    BackgroundTransparency  = 1,
-    ScrollBarThickness      = 0,
-    CanvasSize              = UDim2.fromScale(0, 0),
-    AutomaticCanvasSize     = Enum.AutomaticSize.Y,
-}, Sidebar)
-
-New("UIListLayout", {
-    SortOrder    = Enum.SortOrder.LayoutOrder,
-    Padding      = UDim.new(0, 4),
-    Parent       = TabList,
-})
-New("UIPadding", {
-    PaddingTop   = UDim.new(0, 8),
-    PaddingLeft  = UDim.new(0, 8),
-    PaddingRight = UDim.new(0, 8),
-    Parent       = TabList,
-})
-
--- ─── Right Content ────────────────────────────────────────────────────────────
-local ContentArea = New("ScrollingFrame", {
-    Position               = UDim2.fromOffset(239, 63),
-    Size                   = UDim2.new(1, -239, 1, -63),
-    BackgroundTransparency = 1,
-    ScrollBarThickness     = 4,
-    ScrollBarImageColor3   = C.Cyan,
-    CanvasSize             = UDim2.fromScale(0, 0),
-    AutomaticCanvasSize    = Enum.AutomaticSize.Y,
+-- ─── Content Area ─────────────────────────────────────────────────────────────
+local Content = New("ScrollingFrame", {
+    Position = UDim2.fromOffset(239, 63), Size = UDim2.new(1,-239,1,-63),
+    BackgroundTransparency = 1, ScrollBarThickness = 4,
+    ScrollBarImageColor3 = C.Cyan, CanvasSize = UDim2.fromScale(0,0),
+    AutomaticCanvasSize = Enum.AutomaticSize.Y, ZIndex = 2,
 }, Win)
+ListLayout(Content, 10)
+Pad(14, 18, 18, 18, Content)
 
-New("UIPadding", {
-    PaddingTop   = UDim.new(0, 16),
-    PaddingLeft  = UDim.new(0, 18),
-    PaddingRight = UDim.new(0, 18),
-    PaddingBottom = UDim.new(0, 16),
-    Parent       = ContentArea,
-})
-
-local ContentLayout = New("UIListLayout", {
-    SortOrder  = Enum.SortOrder.LayoutOrder,
-    Padding    = UDim.new(0, 12),
-    Parent     = ContentArea,
-})
-
--- ─── UI Builder Helpers ───────────────────────────────────────────────────────
-
--- Section header (e.g. "♪ AUDIO")
-local function SectionHeader(icon, title, order)
-    local f = New("Frame", {
-        Size             = UDim2.new(1, 0, 0, 32),
-        BackgroundTransparency = 1,
-        LayoutOrder      = order,
-    }, ContentArea)
+-- ─── Section header ───────────────────────────────────────────────────────────
+local function Header(icon, title, order)
+    local f = New("Frame", { Size = UDim2.new(1,0,0,28), BackgroundTransparency = 1, LayoutOrder = order }, Content)
     New("TextLabel", {
-        Size             = UDim2.fromScale(1, 1),
-        BackgroundTransparency = 1,
-        Text             = icon .. "  " .. title,
-        TextColor3       = C.Cyan,
-        Font             = Enum.Font.GothamBold,
-        TextSize         = 15,
-        TextXAlignment   = Enum.TextXAlignment.Left,
+        Size = UDim2.fromScale(1,1), BackgroundTransparency = 1,
+        Text = icon .. "  " .. title, TextColor3 = C.Cyan,
+        Font = Enum.Font.GothamBold, TextSize = 14, TextXAlignment = Enum.TextXAlignment.Left,
     }, f)
     return f
 end
 
--- Two-column card grid container
-local function CardGrid(order)
-    local grid = New("Frame", {
-        Size             = UDim2.new(1, 0, 0, 0),
-        AutomaticSize    = Enum.AutomaticSize.Y,
-        BackgroundTransparency = 1,
-        LayoutOrder      = order,
-    }, ContentArea)
-    local layout = New("UIGridLayout", {
-        CellSize         = UDim2.new(0.5, -6, 0, 84),
-        CellPaddingY     = UDim2.fromOffset(0, 8),
-        CellPaddingX     = UDim2.fromOffset(12, 0),
-        SortOrder        = Enum.SortOrder.LayoutOrder,
-        Parent           = grid,
+-- ─── Two-column grid ──────────────────────────────────────────────────────────
+local function Grid(order)
+    local g = New("Frame", {
+        Size = UDim2.new(1,0,0,0), AutomaticSize = Enum.AutomaticSize.Y,
+        BackgroundTransparency = 1, LayoutOrder = order,
+    }, Content)
+    New("UIGridLayout", {
+        CellSize    = UDim2.new(0.5, -7, 0, 82),
+        CellPadding = UDim2.new(0, 14, 0, 10),
+        SortOrder   = Enum.SortOrder.LayoutOrder,
+        Parent      = g,
     })
-    return grid
+    return g
 end
 
--- Slider card
-local sliderValues = {}
-local function SliderCard(parent, id, label, desc, default, min, max, order, callback)
-    local card = New("Frame", {
-        BackgroundColor3 = C.CardBG,
-        LayoutOrder      = order,
-    }, parent)
-    Corner(8, card)
-    Stroke(C.CardBorder, 1, card)
+-- ─── Slider card ──────────────────────────────────────────────────────────────
+local sliderVals = {}
+local function Slider(parent, id, label, desc, default, mn, mx, order, cb)
+    local card = New("Frame", { BackgroundColor3 = C.Card, LayoutOrder = order }, parent)
+    Corner(8, card); Stroke(C.CardBdr, 1, card)
 
-    New("TextLabel", {
-        Position         = UDim2.fromOffset(14, 12),
-        Size             = UDim2.new(1, -80, 0, 18),
-        BackgroundTransparency = 1,
-        Text             = label,
-        TextColor3       = C.Text,
-        Font             = Enum.Font.GothamBold,
-        TextSize         = 14,
-        TextXAlignment   = Enum.TextXAlignment.Left,
-    }, card)
+    New("TextLabel", { Position = UDim2.fromOffset(13,10), Size = UDim2.new(1,-60,0,17),
+        BackgroundTransparency = 1, Text = label, TextColor3 = C.Text,
+        Font = Enum.Font.GothamBold, TextSize = 13, TextXAlignment = Enum.TextXAlignment.Left }, card)
+    New("TextLabel", { Position = UDim2.fromOffset(13,27), Size = UDim2.new(1,-60,0,16),
+        BackgroundTransparency = 1, Text = desc, TextColor3 = C.Sub,
+        Font = Enum.Font.Gotham, TextSize = 11, TextXAlignment = Enum.TextXAlignment.Left }, card)
 
-    New("TextLabel", {
-        Position         = UDim2.fromOffset(14, 30),
-        Size             = UDim2.new(1, -80, 0, 14),
-        BackgroundTransparency = 1,
-        Text             = desc,
-        TextColor3       = C.SubText,
-        Font             = Enum.Font.Gotham,
-        TextSize         = 11,
-        TextXAlignment   = Enum.TextXAlignment.Left,
-    }, card)
+    local valBG = New("Frame", { Position = UDim2.fromOffset(13,50), Size = UDim2.fromOffset(44,22), BackgroundColor3 = C.SliderBG }, card)
+    Corner(4, valBG)
+    local valLbl = New("TextLabel", { Size = UDim2.fromScale(1,1), BackgroundTransparency = 1, Text = tostring(default), TextColor3 = C.Text, Font = Enum.Font.GothamBold, TextSize = 12 }, valBG)
 
-    -- Value box
-    local valBox = New("Frame", {
-        Position         = UDim2.fromOffset(14, 50),
-        Size             = UDim2.fromOffset(42, 22),
-        BackgroundColor3 = C.SliderBG,
-    }, card)
-    Corner(4, valBox)
-
-    local valLabel = New("TextLabel", {
-        Size             = UDim2.fromScale(1, 1),
-        BackgroundTransparency = 1,
-        Text             = tostring(default),
-        TextColor3       = C.Text,
-        Font             = Enum.Font.GothamBold,
-        TextSize         = 12,
-    }, valBox)
-
-    -- Slider track
-    local trackBG = New("Frame", {
-        Position         = UDim2.fromOffset(62, 57),
-        Size             = UDim2.new(1, -80, 0, 8),
-        BackgroundColor3 = C.SliderBG,
-    }, card)
-    Corner(4, trackBG)
-
-    local trackFill = New("Frame", {
-        Size             = UDim2.new((default - min) / (max - min), 0, 1, 0),
-        BackgroundColor3 = C.SliderFill,
-    }, trackBG)
-    Corner(4, trackFill)
-
-    -- Knob
+    local track = New("Frame", { Position = UDim2.fromOffset(63,55), Size = UDim2.new(1,-78,0,10), BackgroundColor3 = C.SliderBG }, card)
+    Corner(5, track)
+    local fill = New("Frame", { Size = UDim2.new((default-mn)/(mx-mn),0,1,0), BackgroundColor3 = C.SliderFG }, track)
+    Corner(5, fill)
     local knob = New("Frame", {
-        AnchorPoint      = Vector2.new(0.5, 0.5),
-        Position         = UDim2.new((default - min) / (max - min), 0, 0.5, 0),
-        Size             = UDim2.fromOffset(14, 14),
-        BackgroundColor3 = C.Text,
-    }, trackBG)
-    Corner(7, knob)
-    Stroke(C.Cyan, 2, knob)
+        AnchorPoint = Vector2.new(0.5,0.5), Position = UDim2.new((default-mn)/(mx-mn),0,0.5,0),
+        Size = UDim2.fromOffset(14,14), BackgroundColor3 = C.Text
+    }, track)
+    Corner(7, knob); Stroke(C.Cyan, 2, knob)
 
-    -- Drag logic
-    local currentVal = default
-    sliderValues[id] = currentVal
-
-    local function setVal(v)
-        v = math.clamp(math.round(v * 10) / 10, min, max)
-        currentVal = v
-        sliderValues[id] = v
-        local pct = (v - min) / (max - min)
-        trackFill.Size = UDim2.new(pct, 0, 1, 0)
-        knob.Position  = UDim2.new(pct, 0, 0.5, 0)
-        valLabel.Text  = tostring(v)
-        if callback then callback(v) end
+    sliderVals[id] = default
+    local function set(v)
+        v = math.clamp(math.round(v * 10) / 10, mn, mx)
+        sliderVals[id] = v
+        local pct = (v - mn) / (mx - mn)
+        fill.Size = UDim2.new(pct, 0, 1, 0)
+        knob.Position = UDim2.new(pct, 0, 0.5, 0)
+        valLbl.Text = tostring(v)
+        if cb then pcall(cb, v) end
     end
 
-    local dragging = false
-    knob.InputBegan:Connect(function(inp)
-        if inp.UserInputType == Enum.UserInputType.MouseButton1 then dragging = true end
-    end)
-    trackBG.InputBegan:Connect(function(inp)
-        if inp.UserInputType == Enum.UserInputType.MouseButton1 then
-            dragging = true
-            local rel = (inp.Position.X - trackBG.AbsolutePosition.X) / trackBG.AbsoluteSize.X
-            setVal(min + rel * (max - min))
-        end
-    end)
-    UserInputService.InputEnded:Connect(function(inp)
-        if inp.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end
-    end)
-    UserInputService.InputChanged:Connect(function(inp)
-        if dragging and inp.UserInputType == Enum.UserInputType.MouseMovement then
-            local rel = (inp.Position.X - trackBG.AbsolutePosition.X) / trackBG.AbsoluteSize.X
-            setVal(min + rel * (max - min))
-        end
-    end)
-
-    return card
+    local down = false
+    local function drag(x) set(mn + math.clamp((x - track.AbsolutePosition.X) / track.AbsoluteSize.X, 0, 1) * (mx - mn)) end
+    track.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 then down = true; drag(i.Position.X) end end)
+    knob.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 then down = true end end)
+    UserInputService.InputEnded:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 then down = false end end)
+    UserInputService.InputChanged:Connect(function(i) if down and i.UserInputType == Enum.UserInputType.MouseMovement then drag(i.Position.X) end end)
 end
 
--- Toggle card
-local toggleValues = {}
-local function ToggleCard(parent, id, label, desc, default, order, callback)
-    local card = New("Frame", {
-        BackgroundColor3 = C.CardBG,
-        LayoutOrder      = order,
-    }, parent)
-    Corner(8, card)
-    Stroke(C.CardBorder, 1, card)
+-- ─── Toggle card ──────────────────────────────────────────────────────────────
+local toggleVals = {}
+local function Toggle(parent, id, label, desc, default, order, cb)
+    local card = New("Frame", { BackgroundColor3 = C.Card, LayoutOrder = order }, parent)
+    Corner(8, card); Stroke(C.CardBdr, 1, card)
 
-    New("TextLabel", {
-        Position         = UDim2.fromOffset(14, 18),
-        Size             = UDim2.new(1, -70, 0, 18),
-        BackgroundTransparency = 1,
-        Text             = label,
-        TextColor3       = C.Text,
-        Font             = Enum.Font.GothamBold,
-        TextSize         = 14,
-        TextXAlignment   = Enum.TextXAlignment.Left,
-    }, card)
+    New("TextLabel", { Position = UDim2.fromOffset(13,14), Size = UDim2.new(1,-64,0,17),
+        BackgroundTransparency = 1, Text = label, TextColor3 = C.Text,
+        Font = Enum.Font.GothamBold, TextSize = 13, TextXAlignment = Enum.TextXAlignment.Left }, card)
+    New("TextLabel", { Position = UDim2.fromOffset(13,31), Size = UDim2.new(1,-64,0,32),
+        BackgroundTransparency = 1, Text = desc, TextColor3 = C.Sub,
+        Font = Enum.Font.Gotham, TextSize = 11, TextXAlignment = Enum.TextXAlignment.Left, TextWrapped = true, TextYAlignment = Enum.TextYAlignment.Top }, card)
 
-    New("TextLabel", {
-        Position         = UDim2.fromOffset(14, 38),
-        Size             = UDim2.new(1, -70, 0, 28),
-        BackgroundTransparency = 1,
-        Text             = desc,
-        TextColor3       = C.SubText,
-        Font             = Enum.Font.Gotham,
-        TextSize         = 11,
-        TextXAlignment   = Enum.TextXAlignment.Left,
-        TextYAlignment   = Enum.TextYAlignment.Top,
-        TextWrapped      = true,
-    }, card)
-
-    local val = default
-    toggleValues[id] = val
-
-    -- Toggle button
+    toggleVals[id] = default
     local btn = New("TextButton", {
-        AnchorPoint      = Vector2.new(1, 0.5),
-        Position         = UDim2.new(1, -14, 0.5, 0),
-        Size             = UDim2.fromOffset(40, 40),
-        BackgroundColor3 = val and C.Green or C.Red,
-        Text             = val and "✓" or "✕",
-        TextColor3       = C.White,
-        Font             = Enum.Font.GothamBold,
-        TextSize         = 20,
+        AnchorPoint = Vector2.new(1,0.5), Position = UDim2.new(1,-12,0.5,0),
+        Size = UDim2.fromOffset(38,38), BackgroundColor3 = default and C.Green or C.Red,
+        Text = default and "✓" or "✕", TextColor3 = C.White, Font = Enum.Font.GothamBold, TextSize = 20,
     }, card)
-    Corner(8, btn)
-
+    Corner(7, btn)
     btn.MouseButton1Click:Connect(function()
-        val = not val
-        toggleValues[id] = val
-        btn.BackgroundColor3 = val and C.Green or C.Red
-        btn.Text = val and "✓" or "✕"
-        if callback then callback(val) end
+        toggleVals[id] = not toggleVals[id]
+        btn.BackgroundColor3 = toggleVals[id] and C.Green or C.Red
+        btn.Text = toggleVals[id] and "✓" or "✕"
+        if cb then pcall(cb, toggleVals[id]) end
     end)
-
-    return card
 end
 
--- Button card (action, no toggle)
-local function ActionCard(parent, label, desc, icon, order, callback)
-    local card = New("Frame", {
-        BackgroundColor3 = C.CardBG,
-        LayoutOrder      = order,
-    }, parent)
-    Corner(8, card)
-    Stroke(C.CardBorder, 1, card)
+-- ─── Action card ──────────────────────────────────────────────────────────────
+local function Action(parent, label, desc, order, cb)
+    local card = New("Frame", { BackgroundColor3 = C.Card, LayoutOrder = order }, parent)
+    Corner(8, card); Stroke(C.CardBdr, 1, card)
 
-    New("TextLabel", {
-        Position         = UDim2.fromOffset(14, 18),
-        Size             = UDim2.new(1, -70, 0, 18),
-        BackgroundTransparency = 1,
-        Text             = label,
-        TextColor3       = C.Text,
-        Font             = Enum.Font.GothamBold,
-        TextSize         = 14,
-        TextXAlignment   = Enum.TextXAlignment.Left,
-    }, card)
-
-    New("TextLabel", {
-        Position         = UDim2.fromOffset(14, 38),
-        Size             = UDim2.new(1, -70, 0, 28),
-        BackgroundTransparency = 1,
-        Text             = desc,
-        TextColor3       = C.SubText,
-        Font             = Enum.Font.Gotham,
-        TextSize         = 11,
-        TextXAlignment   = Enum.TextXAlignment.Left,
-        TextYAlignment   = Enum.TextYAlignment.Top,
-        TextWrapped      = true,
-    }, card)
+    New("TextLabel", { Position = UDim2.fromOffset(13,14), Size = UDim2.new(1,-64,0,17),
+        BackgroundTransparency = 1, Text = label, TextColor3 = C.Text,
+        Font = Enum.Font.GothamBold, TextSize = 13, TextXAlignment = Enum.TextXAlignment.Left }, card)
+    New("TextLabel", { Position = UDim2.fromOffset(13,31), Size = UDim2.new(1,-64,0,32),
+        BackgroundTransparency = 1, Text = desc, TextColor3 = C.Sub,
+        Font = Enum.Font.Gotham, TextSize = 11, TextXAlignment = Enum.TextXAlignment.Left, TextWrapped = true, TextYAlignment = Enum.TextYAlignment.Top }, card)
 
     local btn = New("TextButton", {
-        AnchorPoint      = Vector2.new(1, 0.5),
-        Position         = UDim2.new(1, -14, 0.5, 0),
-        Size             = UDim2.fromOffset(40, 40),
-        BackgroundColor3 = C.SliderBG,
-        Text             = icon or "▶",
-        TextColor3       = C.Text,
-        Font             = Enum.Font.GothamBold,
-        TextSize         = 18,
+        AnchorPoint = Vector2.new(1,0.5), Position = UDim2.new(1,-12,0.5,0),
+        Size = UDim2.fromOffset(38,38), BackgroundColor3 = C.SliderBG,
+        Text = "⬇", TextColor3 = C.Text, Font = Enum.Font.GothamBold, TextSize = 18,
     }, card)
-    Corner(8, btn)
-    Stroke(C.CardBorder, 1, btn)
-
-    btn.MouseButton1Click:Connect(function()
-        if callback then callback() end
-    end)
-
-    -- Hover
-    btn.MouseEnter:Connect(function()
-        btn.BackgroundColor3 = C.CyanDark
-        btn.TextColor3 = C.White
-    end)
-    btn.MouseLeave:Connect(function()
-        btn.BackgroundColor3 = C.SliderBG
-        btn.TextColor3 = C.Text
-    end)
-
-    return card
+    Corner(7, btn); Stroke(C.CardBdr, 1, btn)
+    btn.MouseEnter:Connect(function() btn.BackgroundColor3 = C.CyanDim; btn.TextColor3 = C.White end)
+    btn.MouseLeave:Connect(function() btn.BackgroundColor3 = C.SliderBG; btn.TextColor3 = C.Text end)
+    btn.MouseButton1Click:Connect(function() if cb then pcall(cb) end end)
 end
 
--- ─── Tab Navigation ───────────────────────────────────────────────────────────
-
--- Each tab has: { name, icon, sections = { ... } }
--- We store per-tab content frames and manage visibility
-
-local tabFrames   = {}
-local tabButtons  = {}
-local activeTab   = nil
-
-local function makeTabButton(name, icon, order)
-    local btn = New("TextButton", {
-        Size             = UDim2.new(1, 0, 0, 46),
-        BackgroundColor3 = C.SidebarBG,
-        Text             = "",
-        LayoutOrder      = order,
-        AutoButtonColor  = false,
-    }, TabList)
-    Corner(8, btn)
-
-    New("TextLabel", {
-        Position         = UDim2.fromOffset(14, 0),
-        Size             = UDim2.new(1, -14, 1, 0),
-        BackgroundTransparency = 1,
-        Text             = icon .. "   " .. name,
-        TextColor3       = C.SubText,
-        Font             = Enum.Font.Gotham,
-        TextSize         = 14,
-        TextXAlignment   = Enum.TextXAlignment.Left,
-    }, btn)
-
-    return btn
+-- ─── Sections ─────────────────────────────────────────────────────────────────
+-- tabSections["TabName"] = { header, gridOrFrame }
+local tabSections = {}
+local function reg(name, hdr, body)
+    tabSections[name] = tabSections[name] or {}
+    table.insert(tabSections[name], hdr)
+    table.insert(tabSections[name], body)
 end
 
-local function setActiveTab(name)
-    if activeTab == name then return end
-    activeTab = name
+-- AUDIO
+local aHdr = Header("♪", "AUDIO", 10)
+local aGrid = Grid(11)
+Slider(aGrid, "MusicVol",   "Music Volume",   "Adjusts all game music volume",   1.2, 0, 2, 1)
+Slider(aGrid, "SFXVol",     "SFX Volume",     "Adjusts all game sound effects",  1.0, 0, 2, 2)
+Slider(aGrid, "AmbientVol", "Ambient Volume", "Adjusts all ambient volume",      1.2, 0, 2, 3)
+reg("Audio", aHdr, aGrid)
 
-    -- Update buttons
-    for n, b in pairs(tabButtons) do
-        local label = b:FindFirstChildWhichIsA("TextLabel")
-        if n == name then
-            b.BackgroundColor3 = C.Cyan
-            if label then
-                label.TextColor3 = C.Black
-                label.Font = Enum.Font.GothamBold
-            end
-        else
-            b.BackgroundColor3 = C.SidebarBG
-            if label then
-                label.TextColor3 = C.SubText
-                label.Font = Enum.Font.Gotham
-            end
-        end
-    end
-
-    -- Show/hide content sections
-    for n, frames in pairs(tabFrames) do
-        local visible = (n == name or name == "All")
-        for _, f in ipairs(frames) do
-            f.Visible = visible
-        end
-    end
-end
-
--- ─── Content Sections ─────────────────────────────────────────────────────────
-
--- We collect each section's header + grid for tab filtering
-local function registerSection(name, header, grid)
-    if not tabFrames[name] then tabFrames[name] = {} end
-    table.insert(tabFrames[name], header)
-    table.insert(tabFrames[name], grid)
-end
-
--- ── AUDIO ─────────────────────────────────────────────────────────────────────
-local audioHeader = SectionHeader("♪", "AUDIO", 10)
-local audioGrid   = CardGrid(11)
-
-SliderCard(audioGrid, "MusicVolume",   "Music Volume",   "Adjusts all game mu...", 1.2, 0, 2, 1, function(v)
-    -- game:GetService("SoundService"):SetVolumeByName("Music", v)
-end)
-SliderCard(audioGrid, "SFXVolume",     "SFX Volume",     "Adjusts all game so...", 1.0, 0, 2, 2, function(v)
-    -- game:GetService("SoundService"):SetVolumeByName("SFX", v)
-end)
-SliderCard(audioGrid, "AmbientVolume", "Ambient Volume", "Adjusts all ambient ...", 1.2, 0, 2, 3, function(v)
-    -- game:GetService("SoundService"):SetVolumeByName("Ambient", v)
-end)
-
-registerSection("Audio", audioHeader, audioGrid)
-
--- ── GAMEPLAY ──────────────────────────────────────────────────────────────────
-local gameplayHeader = SectionHeader("⚙", "GAMEPLAY", 20)
-local gameplayGrid   = CardGrid(21)
-
-ActionCard(gameplayGrid, "Teleport To Spawn",        "Go to your current map's spawn point",         "⬇",  1, function()
+-- GAMEPLAY
+local gHdr = Header("⚙", "GAMEPLAY", 20)
+local gGrid = Grid(21)
+Action(gGrid,  "Teleport To Spawn",         "Go to your current map's spawn point",   1, function()
     local lp = Players.LocalPlayer
     local sp = workspace:FindFirstChildOfClass("SpawnLocation")
     if sp and lp.Character and lp.Character:FindFirstChild("HumanoidRootPart") then
-        lp.Character.HumanoidRootPart.CFrame = sp.CFrame + Vector3.new(0, 3, 0)
+        lp.Character.HumanoidRootPart.CFrame = sp.CFrame + Vector3.new(0,3,0)
     end
 end)
-ToggleCard(gameplayGrid, "AutoSkipWaves",        "Auto Skip Waves",          "Automatically vote to skip waves",        false,  2)
-ToggleCard(gameplayGrid, "AutoVoteStart",        "Auto Vote Start",          "Automatically vote to start games",       false,  3)
-ToggleCard(gameplayGrid, "ShowMatchEndRewards",  "Show Match End Rewards",   "Show reward pop-ups after matches",       true,   4)
-ToggleCard(gameplayGrid, "DisplayPinnedQuests",  "Display Pinned Quests",    "Display all pinned quest quests in-game", true,   5)
-ToggleCard(gameplayGrid, "SelectUnitOnPlacement","Select Unit on Placement", "Automatically select placed units",       true,   6)
-ToggleCard(gameplayGrid, "ShowMaxRange",         "Show Max Range on Placement", "Show units' max range when placing",   true,   7)
-ToggleCard(gameplayGrid, "DisplayPathVisualizers","Display Path Visualizers","Display path visualizers in-game",        true,   8)
-ToggleCard(gameplayGrid, "AutoRetry",            "Auto Retry",               "Automatically retry when a match ends",   false,  9)
-ToggleCard(gameplayGrid, "AutoNext",             "Auto Next",                "Automatically proceed to the next match", false, 10)
+Toggle(gGrid, "AutoSkipWaves",        "Auto Skip Waves",           "Automatically vote to skip waves",          false, 2)
+Toggle(gGrid, "AutoVoteStart",        "Auto Vote Start",           "Automatically vote to start games",         false, 3)
+Toggle(gGrid, "ShowMatchEndRewards",  "Show Match End Rewards",    "Show reward pop-ups after matches",         true,  4)
+Toggle(gGrid, "DisplayPinnedQuests",  "Display Pinned Quests",     "Display all pinned quests in-game",         true,  5)
+Toggle(gGrid, "SelectUnitOnPlacement","Select Unit on Placement",  "Automatically select placed units",         true,  6)
+Toggle(gGrid, "ShowMaxRange",         "Show Max Range on Placement","Show units' max range when placing",       true,  7)
+Toggle(gGrid, "DisplayPathVisualizers","Display Path Visualizers", "Display path visualizers in-game",          true,  8)
+Toggle(gGrid, "AutoRetry",            "Auto Retry",                "Automatically retry when a match ends",     false, 9)
+Toggle(gGrid, "AutoNext",             "Auto Next",                 "Automatically proceed to the next match",   false, 10)
+reg("Gameplay", gHdr, gGrid)
 
-registerSection("Gameplay", gameplayHeader, gameplayGrid)
-
--- ── GRAPHICS ──────────────────────────────────────────────────────────────────
-local graphicsHeader = SectionHeader("🖥", "GRAPHICS", 30)
-local graphicsGrid   = CardGrid(31)
-
-SliderCard(graphicsGrid, "QualityLevel", "Quality Level", "Overall rendering quality", 10, 1, 21, 1, function(v)
-    settings().Rendering.QualityLevel = Enum.QualityLevel["Level" .. tostring(math.floor(v))]
+-- GRAPHICS
+local grHdr = Header("🖥", "GRAPHICS", 30)
+local grGrid = Grid(31)
+Slider(grGrid, "QualityLevel", "Quality Level", "Rendering quality (1 = low, 21 = high)", 10, 1, 21, 1, function(v)
+    pcall(function() settings().Rendering.QualityLevel = Enum.QualityLevel["Level"..tostring(math.floor(v))] end)
 end)
-ToggleCard(graphicsGrid, "Shadows",         "Shadows",           "Toggle in-game shadows",                   true,  2, function(v)
-    game:GetService("Lighting").GlobalShadows = v
-end)
-ToggleCard(graphicsGrid, "ShowFPS",         "Show FPS Counter",  "Display an in-game FPS counter",           false, 3)
-ToggleCard(graphicsGrid, "ReduceParticles", "Reduce Particles",  "Reduce particle effects for performance",  false, 4)
+Toggle(grGrid, "Shadows",         "Shadows",            "Toggle in-game shadows",                   true,  2, function(v) game:GetService("Lighting").GlobalShadows = v end)
+Toggle(grGrid, "ShowFPS",         "Show FPS Counter",   "Display an in-game FPS counter",           false, 3)
+Toggle(grGrid, "ReduceParticles", "Reduce Particles",   "Reduce particle effects for performance",  false, 4)
+reg("Graphics", grHdr, grGrid)
 
-registerSection("Graphics", graphicsHeader, graphicsGrid)
+-- UNITS
+local uHdr = Header("🛡", "UNITS", 40)
+local uGrid = Grid(41)
+Toggle(uGrid, "UnitHealthBars", "Show Unit Health Bars",    "Display health bars above friendly units",      true,  1)
+Toggle(uGrid, "UnitLevel",      "Show Unit Level",          "Display level indicators above units",          true,  2)
+Toggle(uGrid, "AutoUpgrade",    "Auto Upgrade Units",       "Automatically upgrade units when affordable",   false, 3)
+Toggle(uGrid, "ConfirmSell",    "Confirm Before Selling",   "Show confirmation before selling a unit",       true,  4)
+reg("Units", uHdr, uGrid)
 
--- ── UNITS ─────────────────────────────────────────────────────────────────────
-local unitsHeader = SectionHeader("🛡", "UNITS", 40)
-local unitsGrid   = CardGrid(41)
+-- ENEMIES
+local eHdr = Header("💀", "ENEMIES", 50)
+local eGrid = Grid(51)
+Toggle(eGrid, "EnemyHealthBars", "Show Enemy Health Bars",  "Display health bars above enemies",              true,  1)
+Toggle(eGrid, "EnemyNames",      "Show Enemy Names",        "Display enemy type labels in-game",              false, 2)
+Toggle(eGrid, "BossWarning",     "Boss Warning",            "Show notification when a boss spawns",           true,  3)
+Toggle(eGrid, "PathPreview",     "Enemy Path Preview",      "Highlight the path enemies will follow",         false, 4)
+reg("Enemies", eHdr, eGrid)
 
-ToggleCard(unitsGrid, "ShowUnitHealthBars", "Show Unit Health Bars", "Display health bars above friendly units",  true,  1)
-ToggleCard(unitsGrid, "ShowUnitLevel",      "Show Unit Level",       "Display level indicators above units",      true,  2)
-ToggleCard(unitsGrid, "AutoUpgradeUnits",   "Auto Upgrade Units",    "Automatically upgrade units when affordable", false, 3)
-ToggleCard(unitsGrid, "ConfirmSell",        "Confirm Before Selling","Show confirmation before selling a unit",   true,  4)
+-- MISCELLANEOUS
+local mHdr = Header("…", "MISCELLANEOUS", 60)
+local mGrid = Grid(61)
+Toggle(mGrid, "ShowPing",          "Show Ping",             "Display your current ping in-game",              false, 1)
+Toggle(mGrid, "AutoReady",         "Auto Ready",            "Automatically mark yourself as ready",           false, 2)
+Toggle(mGrid, "WaveNotifs",        "Wave Notifications",    "Show notification at start of each wave",        true,  3)
+Toggle(mGrid, "ChatNotifs",        "Chat Notifications",    "Show in-chat event messages",                    true,  4)
+reg("Miscellaneous", mHdr, mGrid)
 
-registerSection("Units", unitsHeader, unitsGrid)
+-- KEYBINDS
+local kHdr = Header("⌨", "KEYBINDS", 70)
+local kFrame = New("Frame", {
+    Size = UDim2.new(1,0,0,0), AutomaticSize = Enum.AutomaticSize.Y,
+    BackgroundTransparency = 1, LayoutOrder = 71,
+}, Content)
+ListLayout(kFrame, 6)
 
--- ── ENEMIES ───────────────────────────────────────────────────────────────────
-local enemiesHeader = SectionHeader("💀", "ENEMIES", 50)
-local enemiesGrid   = CardGrid(51)
-
-ToggleCard(enemiesGrid, "ShowEnemyHealthBars", "Show Enemy Health Bars", "Display health bars above enemies",      true,  1)
-ToggleCard(enemiesGrid, "ShowEnemyNames",      "Show Enemy Names",       "Display enemy type labels in-game",      false, 2)
-ToggleCard(enemiesGrid, "BossWarning",         "Boss Warning",           "Show a notification when a boss spawns", true,  3)
-ToggleCard(enemiesGrid, "EnemyPathPreview",    "Enemy Path Preview",     "Highlight the path enemies will follow", false, 4)
-
-registerSection("Enemies", enemiesHeader, enemiesGrid)
-
--- ── MISCELLANEOUS ─────────────────────────────────────────────────────────────
-local miscHeader = SectionHeader("…", "MISCELLANEOUS", 60)
-local miscGrid   = CardGrid(61)
-
-ToggleCard(miscGrid, "ShowPing",           "Show Ping",           "Display your current ping in-game",       false, 1)
-ToggleCard(miscGrid, "AutoReady",          "Auto Ready",          "Automatically mark yourself as ready",    false, 2)
-ToggleCard(miscGrid, "WaveNotifications",  "Wave Notifications",  "Show notification at start of each wave", true,  3)
-ToggleCard(miscGrid, "ChatNotifications",  "Chat Notifications",  "Show in-chat event messages",             true,  4)
-
-registerSection("Miscellaneous", miscHeader, miscGrid)
-
--- ── KEYBINDS ──────────────────────────────────────────────────────────────────
-local keybindsHeader = SectionHeader("⌨", "KEYBINDS", 70)
-local keybindsFrame  = New("Frame", {
-    Size             = UDim2.new(1, 0, 0, 0),
-    AutomaticSize    = Enum.AutomaticSize.Y,
-    BackgroundTransparency = 1,
-    LayoutOrder      = 71,
-}, ContentArea)
-
-New("UIListLayout", { SortOrder = Enum.SortOrder.LayoutOrder, Padding = UDim.new(0, 6), Parent = keybindsFrame })
+-- reset button
+do
+    local row = New("Frame", { Size = UDim2.new(1,0,0,36), BackgroundColor3 = C.Card, LayoutOrder = 0 }, kFrame)
+    Corner(8, row); Stroke(C.CardBdr, 1, row)
+    local rb = New("TextButton", {
+        Position = UDim2.fromOffset(10,4), Size = UDim2.new(1,-20,0,28),
+        BackgroundColor3 = C.SliderBG, Text = "↺  Reset Keybinds",
+        TextColor3 = C.Text, Font = Enum.Font.GothamBold, TextSize = 13,
+    }, row)
+    Corner(6, rb)
+    rb.MouseEnter:Connect(function() rb.BackgroundColor3 = C.CyanDim; rb.TextColor3 = C.White end)
+    rb.MouseLeave:Connect(function() rb.BackgroundColor3 = C.SliderBG; rb.TextColor3 = C.Text end)
+    rb.MouseButton1Click:Connect(function()
+        -- reset handled below by keybind default table
+    end)
+end
 
 local KEYBINDS = {
-    { id = "Dash",               label = "Dash",                         default = "Q"          },
-    { id = "Sprint",             label = "Sprint",                       default = "L Shift"    },
-    { id = "InteractPrompt",     label = "Interact Prompt",              default = "E"          },
-    { id = "ToggleShiftLock",    label = "Toggle Shift Lock",            default = "L Control"  },
-    { id = "RotateUnit",         label = "Rotate Unit",                  default = "R"          },
-    { id = "CancelUnitPlacement", label = "Cancel Unit Placement",      default = "Z"          },
-    { id = "QuickPlacement",     label = "Quick Placement",              default = "L Shift"    },
-    { id = "UpgradeUnit",        label = "Upgrade Unit",                 default = "X, T"       },
-    { id = "AutoUpgradeUnit",    label = "Auto Upgrade Unit",            default = ""           },
-    { id = "SellUnit",           label = "Sell Unit",                    default = "X, X"       },
-    { id = "ChangeUnitTargeting", label = "Change Unit Targeting",      default = "X, R"       },
-    { id = "ToggleAutoSkip",     label = "Toggle Auto Skip Waves",       default = ""           },
-    { id = "ToggleAutoUpgrade",  label = "Toggle Auto-Upgrade Placed Units", default = ""      },
-    { id = "TogglePlayMenu",     label = "Toggle Play Menu",             default = ""           },
-    { id = "ToggleQuestsMenu",   label = "Toggle Quests Menu",           default = ""           },
-    { id = "ToggleAreasMenu",    label = "Toggle Areas Menu",            default = ""           },
+    { label = "Dash",                           key = "Q"         },
+    { label = "Sprint",                         key = "L Shift"   },
+    { label = "Interact Prompt",                key = "E"         },
+    { label = "Toggle Shift Lock",              key = "L Control" },
+    { label = "Rotate Unit",                    key = "R"         },
+    { label = "Cancel Unit Placement",          key = "Z"         },
+    { label = "Quick Placement",                key = "L Shift"   },
+    { label = "Upgrade Unit",                   key = "X  T"      },
+    { label = "Auto Upgrade Unit",              key = ""          },
+    { label = "Sell Unit",                      key = "X  X"      },
+    { label = "Change Unit Targeting",          key = "X  R"      },
+    { label = "Toggle Auto Skip Waves",         key = ""          },
+    { label = "Toggle Auto-Upgrade Placed Units", key = ""        },
+    { label = "Toggle Play Menu",               key = ""          },
+    { label = "Toggle Quests Menu",             key = ""          },
+    { label = "Toggle Areas Menu",              key = ""          },
 }
 
--- Reset button
-local resetRow = New("Frame", {
-    Size             = UDim2.new(1, 0, 0, 36),
-    BackgroundColor3 = C.CardBG,
-    LayoutOrder      = 0,
-}, keybindsFrame)
-Corner(8, resetRow)
-Stroke(C.CardBorder, 1, resetRow)
-
-local resetBtn = New("TextButton", {
-    Size             = UDim2.new(1, -20, 0, 28),
-    Position         = UDim2.fromOffset(10, 4),
-    BackgroundColor3 = C.SliderBG,
-    Text             = "↺  Reset Keybinds",
-    TextColor3       = C.Text,
-    Font             = Enum.Font.GothamBold,
-    TextSize         = 13,
-}, resetRow)
-Corner(6, resetBtn)
-
-local keybindCurrentValues = {}
-
-resetBtn.MouseButton1Click:Connect(function()
-    for _, kb in ipairs(KEYBINDS) do
-        keybindCurrentValues[kb.id] = kb.default
-        -- update labels (handled below via a reference table)
-    end
-end)
-
--- Key badge helper
-local function Badge(text, parent, xOffset)
-    if not text or text == "" then return xOffset end
-    local parts = text:split(", ")
-    local x = xOffset
-    for _, part in ipairs(parts) do
-        local bg = New("Frame", {
-            Position         = UDim2.fromOffset(x, 8),
-            Size             = UDim2.fromOffset(math.max(26, #part * 8 + 14), 22),
-            BackgroundColor3 = C.SliderBG,
-        }, parent)
-        Corner(5, bg)
-        Stroke(C.CardBorder, 1, bg)
-        New("TextLabel", {
-            Size             = UDim2.fromScale(1, 1),
-            BackgroundTransparency = 1,
-            Text             = part,
-            TextColor3       = C.Text,
-            Font             = Enum.Font.GothamBold,
-            TextSize         = 11,
-        }, bg)
-        x = x + bg.Size.X.Offset + 6
-    end
-    return x
-end
-
-local keybindLabels = {}
-
 for i, kb in ipairs(KEYBINDS) do
-    keybindCurrentValues[kb.id] = kb.default
-
-    local row = New("Frame", {
-        Size             = UDim2.new(1, 0, 0, 38),
-        BackgroundColor3 = C.CardBG,
-        LayoutOrder      = i,
-    }, keybindsFrame)
-    Corner(8, row)
-    Stroke(C.CardBorder, 1, row)
+    local row = New("Frame", { Size = UDim2.new(1,0,0,36), BackgroundColor3 = C.Card, LayoutOrder = i }, kFrame)
+    Corner(8, row); Stroke(C.CardBdr, 1, row)
 
     New("TextLabel", {
-        Position         = UDim2.fromOffset(14, 0),
-        Size             = UDim2.new(0.5, -14, 1, 0),
-        BackgroundTransparency = 1,
-        Text             = kb.label,
-        TextColor3       = C.Text,
-        Font             = Enum.Font.Gotham,
-        TextSize         = 13,
-        TextXAlignment   = Enum.TextXAlignment.Left,
+        Position = UDim2.fromOffset(13,0), Size = UDim2.new(0.55,-13,1,0),
+        BackgroundTransparency = 1, Text = kb.label, TextColor3 = C.Text,
+        Font = Enum.Font.Gotham, TextSize = 13, TextXAlignment = Enum.TextXAlignment.Left,
     }, row)
 
-    -- Badge area
-    local badgeArea = New("Frame", {
-        Position         = UDim2.fromScale(0.5, 0),
-        Size             = UDim2.new(0.5, -14, 1, 0),
-        BackgroundTransparency = 1,
-    }, row)
-    Badge(kb.default, badgeArea, 0)
-
-    keybindLabels[kb.id] = badgeArea
+    -- key badges
+    if kb.key ~= "" then
+        local parts = kb.key:split("  ")
+        local xOff = 0
+        local badgeArea = New("Frame", { Position = UDim2.fromScale(0.55,0), Size = UDim2.new(0.45,-13,1,0), BackgroundTransparency = 1 }, row)
+        for _, part in ipairs(parts) do
+            local bg = New("Frame", {
+                Position = UDim2.fromOffset(xOff, 7), Size = UDim2.fromOffset(math.max(26, #part * 9 + 12), 22),
+                BackgroundColor3 = C.SliderBG,
+            }, badgeArea)
+            Corner(5, bg); Stroke(C.CardBdr, 1, bg)
+            New("TextLabel", { Size = UDim2.fromScale(1,1), BackgroundTransparency = 1, Text = part, TextColor3 = C.Text, Font = Enum.Font.GothamBold, TextSize = 11 }, bg)
+            xOff = xOff + bg.Size.X.Offset + 6
+        end
+    end
 end
+reg("Keybinds", kHdr, kFrame)
 
-registerSection("Keybinds", keybindsHeader, keybindsFrame)
-
--- ── TESTING ───────────────────────────────────────────────────────────────────
-local testingHeader = SectionHeader("🧪", "TESTING", 80)
-local testingGrid   = CardGrid(81)
-
-ToggleCard(testingGrid, "DebugMode",     "Debug Mode",       "Enable debug overlays",                 false, 1)
-ToggleCard(testingGrid, "VerboseLog",    "Verbose Logging",  "Log all events to developer console",   false, 2)
-ActionCard(testingGrid, "Print Settings", "Dump all current values to output", "▶", 3, function()
-    for k, v in pairs(toggleValues) do print("[Toggle]", k, "=", v) end
-    for k, v in pairs(sliderValues) do print("[Slider]", k, "=", v) end
+-- TESTING
+local tHdr = Header("🧪", "TESTING", 80)
+local tGrid = Grid(81)
+Toggle(tGrid, "DebugMode",  "Debug Mode",      "Enable debug overlays",                false, 1)
+Toggle(tGrid, "VerboseLog", "Verbose Logging", "Log all events to developer console",  false, 2)
+Action(tGrid, "Print Settings", "Dump all current values to output", 3, function()
+    for k,v in pairs(toggleVals) do print("[Toggle]", k, "=", v) end
+    for k,v in pairs(sliderVals) do print("[Slider]", k, "=", v) end
 end)
+reg("Testing", tHdr, tGrid)
 
-registerSection("Testing", testingHeader, testingGrid)
+-- ─── Sidebar tabs ─────────────────────────────────────────────────────────────
+local tabBtns = {}
+local activeTab = nil
 
--- ─── Build Sidebar Tabs ────────────────────────────────────────────────────────
-
-local tabDefs = {
+local TAB_DEFS = {
     { name = "All",           icon = "⇌" },
     { name = "Audio",         icon = "♪" },
     { name = "Gameplay",      icon = "⚙" },
@@ -858,43 +449,68 @@ local tabDefs = {
     { name = "Testing",       icon = "🧪" },
 }
 
-for i, td in ipairs(tabDefs) do
-    local btn = makeTabButton(td.name, td.icon, i)
-    tabButtons[td.name] = btn
-    btn.MouseButton1Click:Connect(function()
-        setActiveTab(td.name)
-    end)
-end
-
--- ─── Search filtering ─────────────────────────────────────────────────────────
-
-SearchBox:GetPropertyChangedSignal("Text"):Connect(function()
-    local query = SearchBox.Text:lower()
-    if query == "" then
-        -- Restore current tab visibility
-        setActiveTab(activeTab)
-        return
-    end
-    -- Show all sections and filter cards
-    for _, frames in pairs(tabFrames) do
-        for _, f in ipairs(frames) do
-            f.Visible = true
+local function switchTab(name)
+    activeTab = name
+    -- update button styles
+    for n, btn in pairs(tabBtns) do
+        local lbl = btn:FindFirstChildWhichIsA("TextLabel")
+        if n == name then
+            btn.BackgroundColor3 = C.Cyan
+            if lbl then lbl.TextColor3 = C.Black; lbl.Font = Enum.Font.GothamBold end
+        else
+            btn.BackgroundColor3 = C.Sidebar
+            if lbl then lbl.TextColor3 = C.Sub; lbl.Font = Enum.Font.Gotham end
         end
     end
-    -- Hide cards that don't match
-    for _, section in pairs({ audioGrid, gameplayGrid, graphicsGrid, unitsGrid, enemiesGrid, miscGrid, testingGrid }) do
-        for _, card in ipairs(section:GetChildren()) do
-            if card:IsA("Frame") then
-                local lbl = card:FindFirstChildWhichIsA("TextLabel")
-                if lbl then
-                    card.Visible = lbl.Text:lower():find(query) ~= nil
-                end
+    -- show / hide sections
+    for secName, frames in pairs(tabSections) do
+        local show = (name == "All") or (name == secName)
+        for _, f in ipairs(frames) do
+            f.Visible = show
+        end
+    end
+end
+
+for i, td in ipairs(TAB_DEFS) do
+    local btn = New("TextButton", {
+        Size = UDim2.new(1,0,0,44), BackgroundColor3 = C.Sidebar,
+        Text = "", LayoutOrder = i, AutoButtonColor = false,
+    }, TabScroll)
+    Corner(8, btn)
+
+    New("TextLabel", {
+        Position = UDim2.fromOffset(14,0), Size = UDim2.new(1,-14,1,0),
+        BackgroundTransparency = 1, Text = td.icon .. "   " .. td.name,
+        TextColor3 = C.Sub, Font = Enum.Font.Gotham, TextSize = 14,
+        TextXAlignment = Enum.TextXAlignment.Left,
+    }, btn)
+
+    tabBtns[td.name] = btn
+    local name = td.name
+    btn.MouseButton1Click:Connect(function() switchTab(name) end)
+end
+
+-- ─── Search ───────────────────────────────────────────────────────────────────
+SearchBox:GetPropertyChangedSignal("Text"):Connect(function()
+    local q = SearchBox.Text:lower():gsub("^%s+",""):gsub("%s+$","")
+    if q == "" then
+        switchTab(activeTab or "All")
+        return
+    end
+    -- reveal all sections, filter cards
+    for _, frames in pairs(tabSections) do
+        for _, f in ipairs(frames) do f.Visible = true end
+    end
+    for _, grid in ipairs({ aGrid, gGrid, grGrid, uGrid, eGrid, mGrid, tGrid }) do
+        for _, child in ipairs(grid:GetChildren()) do
+            if child:IsA("Frame") then
+                local lbl = child:FindFirstChildWhichIsA("TextLabel")
+                child.Visible = lbl and lbl.Text:lower():find(q, 1, true) ~= nil
             end
         end
     end
 end)
 
--- ─── Initial state ────────────────────────────────────────────────────────────
-setActiveTab("All")
-
-print("[Settings] UI loaded. Press the ✕ button to close.")
+-- ─── Start ────────────────────────────────────────────────────────────────────
+switchTab("All")
+print("[Settings] Loaded. Click ✕ or destroy SettingsGui to close.")
